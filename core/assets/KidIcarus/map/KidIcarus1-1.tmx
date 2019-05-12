@@ -65,7 +65,7 @@
     <property name="name" value="door1_exit"/>
    </properties>
   </object>
-  <object id="67" x="220.182" y="3334.91" width="16" height="16">
+  <object id="67" x="173.182" y="912.91" width="16" height="16">
    <properties>
     <property name="name" value="door2_exit"/>
    </properties>
@@ -128,14 +128,6 @@
    </properties>
   </object>
  </objectgroup>
- <layer id="44" name="chalice_health" width="18" height="232">
-  <properties>
-   <property name="agent_class" value="chalice_health"/>
-  </properties>
-  <data encoding="base64" compression="zlib">
-   eJztzgEJAAAMA6A1ef+WjzEYmsAEAAAAAAAAAGDHtQMAAAAAAAAAQMUDJ8gAIA==
-  </data>
- </layer>
  <objectgroup id="17" name="shemum">
   <properties>
    <property name="agent_class" value="agent_spawner"/>
@@ -149,30 +141,6 @@
   <object id="57" x="144" y="3248" width="16" height="176"/>
   <object id="58" x="144" y="3120" width="16" height="112"/>
   <object id="61" x="144" y="2912" width="16" height="192"/>
- </objectgroup>
- <objectgroup id="47" name="specknose">
-  <properties>
-   <property name="agent_class" value="agent_spawner"/>
-   <property name="spawn_agent_class" value="specknose"/>
-   <property name="spawn_multi_count" value="8"/>
-   <property name="spawn_multi_rate" value="0.25"/>
-   <property name="spawn_rand_pos" value="true"/>
-   <property name="spawner_type" value="spawner_type_multi"/>
-  </properties>
-  <object id="79" x="32" y="288" width="224" height="176"/>
- </objectgroup>
- <objectgroup id="26" name="monoeye">
-  <properties>
-   <property name="agent_class" value="agent_spawner"/>
-   <property name="spawn_agent_class" value="monoeye"/>
-   <property name="spawn_multi_count" value="4"/>
-   <property name="spawn_multi_grp_count" value="4"/>
-   <property name="spawn_multi_rate" value="0.25"/>
-   <property name="spawn_scroll_direction" value="up"/>
-   <property name="spawner_type" value="spawner_type_multi"/>
-  </properties>
-  <object id="62" x="96" y="2464" width="16" height="448"/>
-  <object id="63" x="96" y="1888" width="16" height="368"/>
  </objectgroup>
  <layer id="45" name="semisolid_tiles" width="18" height="232">
   <properties>

@@ -11,7 +11,7 @@ import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.tool.AP_Tool;
 
 abstract class SpawnController {
-	AgentSpawner parent;
+	private AgentSpawner parent;
 	AgentHooks parentHooks;
 	private String spawnAgentClassAlias;
 	private Boolean isRandomPos;
