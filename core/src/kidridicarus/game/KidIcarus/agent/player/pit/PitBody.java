@@ -11,7 +11,6 @@ import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.agency.agentscript.ScriptedBodyState;
 import kidridicarus.common.agent.playeragent.PlayerAgentBody;
 import kidridicarus.common.agentbrain.BrainContactFrameInput;
-import kidridicarus.common.agentsensor.AgentContactHoldSensor;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.CommonCF.Alias;
 import kidridicarus.common.info.UInfo;
@@ -27,12 +26,6 @@ class PitBody extends PlayerAgentBody {
 	private static final float GRAVITY_SCALE = 1f;
 	private static final float FRICTION = 0f;	// (default is 0.2f)
 	private static final Vector2 DUCK_TO_STAND_OFFSET = UInfo.VectorP2M(0f, 3f);
-	private static final float HEAD_WIDTH = UInfo.P2M(10f);
-	private static final float HEAD_HEIGHT = UInfo.P2M(12f);
-	private static final float TOPBOT_PW_SENSOR_WIDTH = UInfo.P2M(5f);
-	private static final float TOPBOT_PW_SENSOR_HEIGHT = UInfo.P2M(2f);
-	private static final float SIDE_PW_SENSOR_WIDTH = UInfo.P2M(2f);
-	private static final float SIDE_PW_SENSOR_HEIGHT = UInfo.P2M(5f);
 	// main body
 	private static final CFBitSeq MAINBODY_CFCAT = new CFBitSeq(Alias.AGENT_BIT);
 	private static final CFBitSeq MAINBODY_CFMASK = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT,
@@ -45,10 +38,6 @@ class PitBody extends PlayerAgentBody {
 	private static final CFBitSeq AS_DISABLED_CFCAT = new CFBitSeq(CommonCF.Alias.AGENT_BIT);
 	private static final CFBitSeq AS_DISABLED_CFMASK = new CFBitSeq(CommonCF.Alias.ROOM_BIT,
 			CommonCF.Alias.SOLID_MAP_BIT);
-	private static final CFBitSeq TILEBUMP_SENSOR_CFCAT = new CFBitSeq(CommonCF.Alias.AGENT_BIT);
-	private static final CFBitSeq TILEBUMP_SENSOR_CFMASK = new CFBitSeq(CommonCF.Alias.BUMPABLE_BIT);
-	private static final CFBitSeq PIPEWARP_SENSOR_CFCAT = new CFBitSeq(CommonCF.Alias.AGENT_BIT);
-	private static final CFBitSeq PIPEWARP_SENSOR_CFMASK = new CFBitSeq(CommonCF.Alias.PIPEWARP_BIT);
 	private static final CFBitSeq GROUND_SENSOR_CFCAT = new CFBitSeq(CommonCF.Alias.AGENT_BIT);
 	private static final CFBitSeq GROUND_SENSOR_CFMASK = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT,
 			CommonCF.Alias.SEMISOLID_FLOOR_FOOT_BIT);
@@ -106,23 +95,6 @@ class PitBody extends PlayerAgentBody {
 		// create on ground sensor fixture
 		B2DFactory.makeSensorBoxFixture(b2body, GROUND_SENSOR_CFCAT, GROUND_SENSOR_CFMASK,
 				spine.createSolidContactSensor(), FOOT_WIDTH, FOOT_HEIGHT, new Vector2(0f, -getBounds().height/2f));
-		// create tilebump sensor fixture
-		B2DFactory.makeSensorBoxFixture(b2body, TILEBUMP_SENSOR_CFCAT, TILEBUMP_SENSOR_CFMASK,
-				spine.createTileBumpPushSensor(), HEAD_WIDTH, HEAD_HEIGHT, new Vector2(0f, getBounds().height/2f));
-
-		AgentContactHoldSensor pwSensor = spine.createPipeWarpSensor();
-		// create fixture for bottom pipewarp sensor
-		B2DFactory.makeSensorBoxFixture(b2body, PIPEWARP_SENSOR_CFCAT, PIPEWARP_SENSOR_CFMASK, pwSensor,
-				TOPBOT_PW_SENSOR_WIDTH, TOPBOT_PW_SENSOR_HEIGHT, new Vector2(0f, -getBounds().height/2f));
-		// create fixture for top pipewarp sensor
-		B2DFactory.makeSensorBoxFixture(b2body, PIPEWARP_SENSOR_CFCAT, PIPEWARP_SENSOR_CFMASK, pwSensor,
-				TOPBOT_PW_SENSOR_WIDTH, TOPBOT_PW_SENSOR_HEIGHT, new Vector2(0f, getBounds().height/2f));
-		// create fixture for left pipewarp sensor
-		B2DFactory.makeSensorBoxFixture(b2body, PIPEWARP_SENSOR_CFCAT, PIPEWARP_SENSOR_CFMASK, pwSensor,
-				SIDE_PW_SENSOR_WIDTH, SIDE_PW_SENSOR_HEIGHT, new Vector2(-getBounds().width/2f, 0f));
-		// create fixture for right pipewarp sensor
-		B2DFactory.makeSensorBoxFixture(b2body, PIPEWARP_SENSOR_CFCAT, PIPEWARP_SENSOR_CFMASK, pwSensor,
-				SIDE_PW_SENSOR_WIDTH, SIDE_PW_SENSOR_HEIGHT, new Vector2(getBounds().width/2f, 0f));
 	}
 
 	void useScriptedBodyState(ScriptedBodyState sbState) {

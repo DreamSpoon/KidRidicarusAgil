@@ -24,7 +24,6 @@ import kidridicarus.common.tool.AP_Tool;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
 import kidridicarus.game.KidIcarus.agent.player.pit.HUD.PitHUD;
-import kidridicarus.game.SMB1.agent.HeadBounceGiveAgent;
 
 /*
  * Notes:
@@ -41,7 +40,7 @@ import kidridicarus.game.SMB1.agent.HeadBounceGiveAgent;
  * Glitches implemented:
  *   -duck, unduck re-shoot - if pit shoots, then quickly ducks and unducks, he can shoot more often than normal
  */
-public class Pit extends PlayerAgent implements PowerupTakeAgent, ContactDmgTakeAgent, HeadBounceGiveAgent {
+public class Pit extends PlayerAgent implements PowerupTakeAgent, ContactDmgTakeAgent {
 	private PitHUD playerHUD;
 	private PitBrain brain;
 	private PitSprite sprite;
@@ -115,11 +114,6 @@ public class Pit extends PlayerAgent implements PowerupTakeAgent, ContactDmgTake
 	@Override
 	public boolean onTakeDamage(Agent agent, float amount, Vector2 dmgOrigin) {
 		return brain.onTakeDamage();
-	}
-
-	@Override
-	public boolean onGiveHeadBounce(Agent agent) {
-		return brain.onGiveHeadBounce(agent);
 	}
 
 	@Override

@@ -13,9 +13,9 @@ import com.badlogic.gdx.utils.Align;
 import kidridicarus.common.agent.playeragent.PlayerAgent;
 import kidridicarus.common.agent.playeragent.playerHUD.PlayerHUD;
 import kidridicarus.common.agent.playeragent.playerHUD.TexRegionActor;
+import kidridicarus.common.info.GFX_Info;
 import kidridicarus.game.KidIcarus.KidIcarusGfx;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
-import kidridicarus.game.SMB1.SMB1_Gfx;
 
 public class PitHUD extends PlayerHUD {
 	private PlayerAgent playerAgent;
@@ -35,7 +35,7 @@ public class PitHUD extends PlayerHUD {
 		table.top();
 		table.setFillParent(true);
 
-		LabelStyle labelstyle = new Label.LabelStyle(new BitmapFont(Gdx.files.internal(SMB1_Gfx.SMB1_FONT), false),
+		LabelStyle labelstyle = new Label.LabelStyle(new BitmapFont(Gdx.files.internal(GFX_Info.SMB1_FONT), false),
 				Color.WHITE);
 		heartCountLabel = new Label(String.format("%03d", 0), labelstyle);
 

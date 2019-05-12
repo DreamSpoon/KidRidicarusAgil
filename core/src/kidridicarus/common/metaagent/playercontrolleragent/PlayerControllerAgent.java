@@ -33,8 +33,6 @@ import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.MoveAdvice4x2;
 import kidridicarus.common.tool.QQ;
 import kidridicarus.game.KidIcarus.KidIcarusPow;
-import kidridicarus.game.Metroid.MetroidPow;
-import kidridicarus.game.SMB1.SMB1_Pow;
 
 public class PlayerControllerAgent extends Agent implements Disposable {
 	private static final float SPAWN_TRIGGER_WIDTH = UInfo.P2M(UInfo.TILEPIX_X * 20);
@@ -124,11 +122,7 @@ public class PlayerControllerAgent extends Agent implements Disposable {
 
 		if(Gdx.input.isKeyJustPressed(KeyboardMapping.DEBUG_TOGGLE))
 			QQ.toggleOn();
-		if(Gdx.input.isKeyJustPressed(KeyboardMapping.CHEAT_POWERUP_MARIO))
-			Powerup.tryPushPowerup(playerAgent, new SMB1_Pow.FireFlowerPow());
-		else if(Gdx.input.isKeyJustPressed(KeyboardMapping.CHEAT_POWERUP_SAMUS))
-			Powerup.tryPushPowerup(playerAgent, new MetroidPow.EnergyPow());
-		else if(Gdx.input.isKeyJustPressed(KeyboardMapping.CHEAT_POWERUP_PIT))
+		if(Gdx.input.isKeyJustPressed(KeyboardMapping.CHEAT_POWERUP_PIT))
 			Powerup.tryPushPowerup(playerAgent, new KidIcarusPow.AngelHeartPow(5));
 
 		// pass user input to player agent's supervisor

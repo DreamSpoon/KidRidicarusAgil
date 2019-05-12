@@ -14,7 +14,6 @@ class PitSpine extends PlayerSpine {
 	private static final float MAX_AIRMOVE_VEL = MAX_GROUNDMOVE_VEL;
 	private static final float JUMPUP_FORCE = 15.7f;
 	private static final float JUMPUP_CONSTVEL = 1.6f;
-	private static final float HEADBOUNCE_VEL = 1.4f;	// up velocity
 	private static final Vector2 DEAD_VEL = UInfo.VectorP2M(0f, -120);
 
 	PitSpine(PitBody body) {
@@ -46,10 +45,6 @@ class PitSpine extends PlayerSpine {
 	void applyJumpForce(float forceTimer, float jumpForceDuration) {
 		if(forceTimer < jumpForceDuration)
 			body.applyForce(new Vector2(0f, JUMPUP_FORCE * forceTimer / jumpForceDuration));
-	}
-
-	void applyHeadBounce() {
-		applyPlayerHeadBounce(HEADBOUNCE_VEL);
 	}
 
 	void applyJumpVelocity() {

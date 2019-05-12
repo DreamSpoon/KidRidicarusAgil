@@ -2,11 +2,9 @@ package kidridicarus.game.KidIcarus.agent.player.pit;
 
 import java.util.LinkedList;
 
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.Agency.AgentHooks;
-import kidridicarus.agency.Agent;
 import kidridicarus.agency.agentscript.ScriptedAgentState;
 import kidridicarus.agency.agentscript.ScriptedSpriteState;
 import kidridicarus.agency.agentsprite.SpriteFrameInput;
@@ -17,15 +15,11 @@ import kidridicarus.common.agentbrain.BrainContactFrameInput;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.powerup.PowChar;
 import kidridicarus.common.powerup.Powerup;
-import kidridicarus.common.tool.AP_Tool;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.MoveAdvice4x2;
 import kidridicarus.game.KidIcarus.KidIcarusAudio;
 import kidridicarus.game.KidIcarus.KidIcarusPow;
 import kidridicarus.game.KidIcarus.agent.player.pitarrow.PitArrow;
-import kidridicarus.game.SMB1.SMB1_Pow;
-import kidridicarus.game.SMB1.agent.TileBumpTakeAgent.TileBumpStrength;
-import kidridicarus.game.SMB1.agent.other.pipewarp.PipeWarp;
 
 class PitBrain {
 	private static final int MAX_HEARTS_COLLECTED = 999;
@@ -70,8 +64,6 @@ class PitBrain {
 	private boolean takeDamageThisFrame;
 	private float noDamageCooldown;
 	private boolean isOnGroundHeadInTile;
-	private boolean gaveHeadBounce;
-	private boolean isHeadBumped;
 	// list of powerups received during contact update
 	private LinkedList<Powerup> powerupsReceived;
 	private int heartsCollected;
@@ -97,8 +89,6 @@ class PitBrain {
 		powerupsReceived = new LinkedList<Powerup>();
 		noDamageCooldown = 0f;
 		takeDamageThisFrame = false;
-		gaveHeadBounce = false;
-		isHeadBumped = false;
 		lastKnownRoom = null;
 	}
 
@@ -110,16 +100,6 @@ class PitBrain {
 		// update last known room if not dead, so dead player moving through other RoomBoxes won't cause problems
 		if(moveState != MoveState.DEAD && cFrameInput.room != null)
 			lastKnownRoom = cFrameInput.room;
-		if(supervisor.isRunningScriptNoMoveAdvice())
-			return;
-		if(!isHeadBumped) {
-			// if ducking then hit soft
-			if(moveState.isDuck())
-				isHeadBumped = body.getSpine().checkDoHeadBump(TileBumpStrength.SOFT);
-			// otherwise hit hard
-			else
-				isHeadBumped = body.getSpine().checkDoHeadBump(TileBumpStrength.HARD);
-		}
 	}
 
 	SpriteFrameInput processFrame(FrameTime frameTime) {
@@ -136,10 +116,8 @@ class PitBrain {
 
 		MoveAdvice4x2 moveAdvice = supervisor.pollMoveAdvice();
 
-		processHeadBouncesGiven();
 		processPowerupsReceived();
 		processDamageTaken(frameTime);
-		processPipeWarps(moveAdvice);
 
 		MoveState nextMoveState = getNextMoveState(moveAdvice);
 		boolean moveStateChanged = nextMoveState != moveState;
@@ -225,14 +203,6 @@ class PitBrain {
 		parentHooks.getEar().playSound(KidIcarusAudio.Sound.Pit.HURT);
 	}
 
-	private void processHeadBouncesGiven() {
-		// if a head bounce was given in the update frame then reset the flag and do bounce move
-		if(gaveHeadBounce) {
-			gaveHeadBounce = false;
-			body.getSpine().applyHeadBounce();
-		}
-	}
-
 	private void processPowerupsReceived() {
 		for(Powerup pu : powerupsReceived) {
 			if(pu instanceof KidIcarusPow.AngelHeartPow) {
@@ -242,17 +212,10 @@ class PitBrain {
 			}
 			else if(pu instanceof KidIcarusPow.ChaliceHealthPow)
 				addHealth(((KidIcarusPow.ChaliceHealthPow) pu).getHealAmount());
-			// TODO: implement ignore points pow for pit somewhere better
-			else if(pu.getPowerupCharacter() != PowChar.PIT && !(pu instanceof SMB1_Pow.PointsPow))
+			else if(pu.getPowerupCharacter() != PowChar.PIT)
 				supervisor.receiveNonCharPowerup(pu);
 		}
 		powerupsReceived.clear();
-	}
-
-	private void processPipeWarps(MoveAdvice4x2 moveAdvice) {
-		PipeWarp pw = body.getSpine().getEnterPipeWarp(moveAdvice.getMoveDir4());
-		if(pw != null)
-			pw.use(parent);
 	}
 
 	private MoveState getNextMoveState(MoveAdvice4x2 moveAdvice) {
@@ -377,10 +340,6 @@ class PitBrain {
 			body.getSpine().applyWalkMove(false);
 		else
 			body.getSpine().applyStopMove();
-
-		// reset head bump flag while on ground and not moving up
-		if(body.getVelocity().y < UInfo.VEL_EPSILON)
-			isHeadBumped = false;
 	}
 
 	private void processAirMove(FrameTime frameTime, MoveAdvice4x2 moveAdvice, MoveState nextMoveState) {
@@ -424,11 +383,6 @@ class PitBrain {
 			body.getSpine().applyAirMove(true);
 		else if(moveAdvice.moveLeft)
 			body.getSpine().applyAirMove(false);
-
-		if(isHeadBumped) {
-			body.getSpine().applyHeadBumpMove();
-			isHeadBumped = false;
-		}
 
 		// decrement jump force timer
 		jumpForceTimer = jumpForceTimer > frameTime.timeDelta ? jumpForceTimer-frameTime.timeDelta : 0f;
@@ -497,16 +451,6 @@ class PitBrain {
 
 	RoomBox getCurrentRoom() {
 		return lastKnownRoom;
-	}
-
-	boolean onGiveHeadBounce(Agent agent) {
-		// if other agent has bounds and head bounce is allowed then give head bounce to agent
-		Rectangle otherBounds = AP_Tool.getBounds(agent);
-		if(otherBounds != null && body.getSpine().isGiveHeadBounceAllowed(otherBounds)) {
-			gaveHeadBounce = true;
-			return true;
-		}
-		return false;
 	}
 
 	boolean onTakeDamage() {

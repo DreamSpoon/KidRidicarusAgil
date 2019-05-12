@@ -14,9 +14,8 @@ import kidridicarus.common.agent.general.CorpusAgent;
 import kidridicarus.common.agent.optional.ContactDmgTakeAgent;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.tool.AP_Tool;
-import kidridicarus.game.SMB1.agent.BumpTakeAgent;
 
-public class Shemum extends CorpusAgent implements ContactDmgTakeAgent, BumpTakeAgent {
+public class Shemum extends CorpusAgent implements ContactDmgTakeAgent {
 	private ShemumBrain brain;
 	private ShemumSprite sprite;
 
@@ -51,10 +50,5 @@ public class Shemum extends CorpusAgent implements ContactDmgTakeAgent, BumpTake
 	@Override
 	public boolean onTakeDamage(Agent agent, float amount, Vector2 dmgOrigin) {
 		return brain.onTakeDamage(agent);
-	}
-
-	@Override
-	public void onTakeBump(Agent agent) {
-		brain.onTakeBump();
 	}
 }

@@ -15,7 +15,6 @@ import kidridicarus.common.metaagent.playercontrolleragent.PlayerControllerAgent
 import kidridicarus.common.metaagent.tiledmap.TiledMapMetaAgent;
 import kidridicarus.common.metaagent.tiledmap.drawlayer.DrawLayerAgent;
 import kidridicarus.common.metaagent.tiledmap.solidlayer.SolidTiledMapAgent;
-import kidridicarus.game.SMB1.agent.other.pipewarp.PipeWarp;
 
 public class CommonAgentClassList {
 	public static final AgentClassList CORE_AGENT_CLASS_LIST = new AgentClassList( 
@@ -27,7 +26,6 @@ public class CommonAgentClassList {
 			CommonKV.AgentClassAlias.VAL_LEVELEND_TRIGGER, LevelEndTrigger.class,
 			CommonKV.AgentClassAlias.VAL_PLAYER_CONTROLLER, PlayerControllerAgent.class,
 			CommonKV.AgentClassAlias.VAL_SOLID_TILEDMAP, SolidTiledMapAgent.class,
-			CommonKV.AgentClassAlias.VAL_PIPEWARP, PipeWarp.class,
 			CommonKV.AgentClassAlias.VAL_PLAYER_SPAWNER, PlayerSpawner.class,
 			CommonKV.AgentClassAlias.VAL_ROOM, RoomBox.class,
 			CommonKV.AgentClassAlias.VAL_SCROLL_KILLBOX, ScrollKillBox.class,

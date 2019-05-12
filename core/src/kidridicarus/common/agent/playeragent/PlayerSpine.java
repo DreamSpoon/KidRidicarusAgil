@@ -1,53 +1,14 @@
 package kidridicarus.common.agent.playeragent;
 
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.common.agent.scrollkillbox.ScrollKillBox;
-import kidridicarus.common.agentsensor.AgentContactHoldSensor;
 import kidridicarus.common.agentspine.SolidContactSpine;
 import kidridicarus.common.metaagent.tiledmap.solidlayer.SolidTiledMapAgent;
-import kidridicarus.common.tool.Direction4;
-import kidridicarus.game.SMB1.agent.TileBumpTakeAgent.TileBumpStrength;
-import kidridicarus.game.SMB1.agent.other.pipewarp.PipeWarp;
-import kidridicarus.game.SMB1.agentspine.PipeWarpContactNerve;
-import kidridicarus.game.SMB1.agentspine.TileBumpContactNerve;
 
 public class PlayerSpine extends SolidContactSpine {
-	private TileBumpContactNerve tbcNerve;
-	private PipeWarpContactNerve pwcNerve;
-
 	public PlayerSpine(PlayerAgentBody body) {
 		super(body);
-		tbcNerve = new TileBumpContactNerve();
-		pwcNerve = new PipeWarpContactNerve();
-	}
-
-	public AgentContactHoldSensor createTileBumpPushSensor() {
-		return tbcNerve.createTileBumpPushSensor(body);
-	}
-
-	public AgentContactHoldSensor createPipeWarpSensor() {
-		return pwcNerve.createPipeWarpSensor(body);
-	}
-
-	public boolean checkDoHeadBump(TileBumpStrength bumpStrength) {
-		return tbcNerve.checkDoHeadBump(body, bumpStrength);
-	}
-
-	public PipeWarp getEnterPipeWarp(Direction4 moveDir) {
-		return pwcNerve.getEnterPipeWarp(body, moveDir);
-	}
-
-	public void applyHeadBumpMove() {
-		// if moving upward then arrest upward movement, but continue horizontal movement unimpeded  
-		if(body.getVelocity().y > 0f)
-			body.setVelocity(body.getVelocity().x, 0f);
-	}
-
-	public void applyPlayerHeadBounce(float bounceVel) {
-		body.setVelocity(body.getVelocity().x, 0f);
-		body.applyImpulse(new Vector2(0f, bounceVel));
 	}
 
 	protected void applyHorizontalImpulse(boolean moveRight, float amt) {
@@ -76,14 +37,6 @@ public class PlayerSpine extends SolidContactSpine {
 	protected void capFallVelocity(float maxVelocity) {
 		if(body.getVelocity().y < -maxVelocity)
 			body.setVelocity(body.getVelocity().x, -maxVelocity);
-	}
-
-	public boolean isGiveHeadBounceAllowed(Rectangle otherBounds) {
-		// check bounds
-		Vector2 myPrevPosition = ((PlayerAgentBody) body).getPrevPosition();
-		float otherCenterY = otherBounds.y+otherBounds.height/2f;
-		return body.getBounds().y >= otherCenterY ||
-				myPrevPosition.y-body.getBounds().height/2f >= otherCenterY;
 	}
 
 	public boolean isMapPointSolid(Vector2 position) {
