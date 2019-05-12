@@ -24,7 +24,7 @@ import kidridicarus.common.info.UInfo;
  *   -remove the defineBody/dispose paradigm, replace with the above described create/destroy method paradigm
  */
 public abstract class AgentBody implements Disposable {
-	private final Agent parent;
+	protected final Agent parent;
 	protected final World world;
 	protected Body b2body;
 	// bounds size is for information purposes only, it is not necessarily the current dimensions of b2body

@@ -5,8 +5,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 
 import kidridicarus.agency.agentbody.AgentBody;
-import kidridicarus.common.agentbrain.PowerupBrainContactFrameInput;
-import kidridicarus.common.agentspine.BasicAgentSpine;
+import kidridicarus.common.agentsensor.AgentContactHoldSensor;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.tool.B2DFactory;
@@ -15,10 +14,11 @@ class AngelHeartBody extends AgentBody {
 	private static final float BODY_WIDTH = UInfo.P2M(3f);
 	private static final float BODY_HEIGHT = UInfo.P2M(3f);
 
-	private BasicAgentSpine spine;
+	private AgentContactHoldSensor agentSensor;
 
-	AngelHeartBody(AngelHeart parent, World world, Vector2 position) {
+	AngelHeartBody(AngelHeart parent, World world, Vector2 position, AgentContactHoldSensor agentSensor) {
 		super(parent, world);
+		this.agentSensor = agentSensor;
 		defineBody(new Rectangle(position.x-BODY_WIDTH/2f, position.y-BODY_HEIGHT/2f, BODY_WIDTH, BODY_HEIGHT));
 	}
 
@@ -31,18 +31,8 @@ class AngelHeartBody extends AgentBody {
 		setBoundsSize(bounds.width, bounds.height);
 		b2body = B2DFactory.makeDynamicBody(world, bounds.getCenter(new Vector2()), velocity);
 		b2body.setGravityScale(0f);
-		spine = new BasicAgentSpine(this);
 		// agent sensor fixture
-		B2DFactory.makeSensorBoxFixture(b2body, CommonCF.POWERUP_CFCAT, CommonCF.POWERUP_CFMASK,
-				spine.createAgentSensor(), getBounds().width, getBounds().height);
-	}
-
-	PowerupBrainContactFrameInput processContactFrame() {
-		return new PowerupBrainContactFrameInput(spine.getCurrentRoom(), spine.isContactKeepAlive(),
-				spine.isContactDespawn(), spine.getTouchingPowerupTaker());
-	}
-
-	BasicAgentSpine getSpine() {
-		return spine;
+		B2DFactory.makeSensorBoxFixture(b2body, CommonCF.POWERUP_CFCAT, CommonCF.POWERUP_CFMASK, agentSensor,
+				getBounds().width, getBounds().height);
 	}
 }

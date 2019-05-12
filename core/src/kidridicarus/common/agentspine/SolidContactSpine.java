@@ -2,7 +2,7 @@ package kidridicarus.common.agentspine;
 
 import com.badlogic.gdx.math.Vector2;
 
-import kidridicarus.agency.agentbody.AgentBody;
+import kidridicarus.agency.Agent;
 import kidridicarus.common.agentsensor.SolidContactSensor;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.tool.Direction4;
@@ -10,13 +10,13 @@ import kidridicarus.common.tool.Direction4;
 public class SolidContactSpine extends BasicAgentSpine {
 	private SolidContactNerve scNerve;
 
-	public SolidContactSpine(AgentBody body) {
-		super(body);
+	public SolidContactSpine(Agent parentAgent) {
+		super(parentAgent);
 		scNerve = new SolidContactNerve();
 	}
 
 	public SolidContactSensor createSolidContactSensor() {
-		return scNerve.createSolidContactSensor(body);
+		return scNerve.createSolidContactSensor(parentAgent);
 	}
 
 	public boolean isOnGround() {

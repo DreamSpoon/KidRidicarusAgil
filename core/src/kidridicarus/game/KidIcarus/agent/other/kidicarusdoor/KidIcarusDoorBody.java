@@ -9,7 +9,6 @@ import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.agentsensor.AgentContactHoldSensor;
-import kidridicarus.common.agentspine.BasicAgentSpine;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.tool.B2DFactory;
@@ -28,13 +27,14 @@ class KidIcarusDoorBody extends AgentBody {
 	private static final CFBitSeq ROOF_CFCAT = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT);
 	private static final CFBitSeq ROOF_CFMASK = new CFBitSeq(true);
 
-	private BasicAgentSpine spine;
 	private AgentContactHoldSensor agentSensor;
 	private Fixture mainBodyFixture;
 	private boolean isOpened;
 
-	KidIcarusDoorBody(KidIcarusDoor parent, World world, Vector2 position, boolean isOpened) {
+	KidIcarusDoorBody(KidIcarusDoor parent, World world, Vector2 position, boolean isOpened,
+			AgentContactHoldSensor agentSensor) {
 		super(parent, world);
+		this.agentSensor = agentSensor;
 		this.isOpened = isOpened;
 		defineBody(new Rectangle(position.x, position.y, 0f, 0f));
 	}
@@ -48,9 +48,7 @@ class KidIcarusDoorBody extends AgentBody {
 
 		setBoundsSize(BODY_WIDTH, BODY_HEIGHT);
 		b2body = B2DFactory.makeStaticBody(world, bounds.getCenter(new Vector2()).add(BODY_OFFSET));
-		spine = new BasicAgentSpine(this);
 		// create the agent sensor, it will be used now and/or later
-		agentSensor = spine.createAgentSensor();
 		mainBodyFixture = B2DFactory.makeBoxFixture(b2body, isOpened ? OPENED_CFCAT : CLOSED_CFCAT,
 				isOpened ? OPENED_CFMASK : CLOSED_CFMASK, agentSensor, getBounds().width, getBounds().height);
 		// solid roof that player can stand on
@@ -59,19 +57,8 @@ class KidIcarusDoorBody extends AgentBody {
 	}
 
 	void setOpened(boolean isOpened) {
-		if(this.isOpened != isOpened) {
-			this.isOpened = isOpened;
-			mainBodyFixture.setUserData(new AgentBodyFilter(isOpened ? OPENED_CFCAT : CLOSED_CFCAT,
-					isOpened ? OPENED_CFMASK : CLOSED_CFMASK, agentSensor));
-			mainBodyFixture.refilter();
-		}
-	}
-
-	KidIcarusDoorBrainContactFrameInput processContactFrame() {
-		return new KidIcarusDoorBrainContactFrameInput(spine.getPlayerContacts());
-	}
-
-	BasicAgentSpine getSpine() {
-		return spine;
+		mainBodyFixture.setUserData(new AgentBodyFilter(isOpened ? OPENED_CFCAT : CLOSED_CFCAT,
+				isOpened ? OPENED_CFMASK : CLOSED_CFMASK, agentSensor));
+		mainBodyFixture.refilter();
 	}
 }

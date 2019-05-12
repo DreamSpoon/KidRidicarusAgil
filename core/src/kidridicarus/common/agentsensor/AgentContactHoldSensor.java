@@ -13,7 +13,7 @@ import kidridicarus.agency.agentbody.AgentContactSensor;
 public class AgentContactHoldSensor extends AgentContactSensor {
 	private LinkedList<Agent> contacts;
 
-	public AgentContactHoldSensor(Object parent) {
+	public AgentContactHoldSensor(Agent parent) {
 		super(parent);
 		contacts = new LinkedList<Agent>();
 	}

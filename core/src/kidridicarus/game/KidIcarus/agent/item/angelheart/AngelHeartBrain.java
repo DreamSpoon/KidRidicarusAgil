@@ -3,8 +3,7 @@ package kidridicarus.game.KidIcarus.agent.item.angelheart;
 import kidridicarus.agency.Agency.AgentHooks;
 import kidridicarus.agency.agentsprite.SpriteFrameInput;
 import kidridicarus.common.agent.optional.PowerupTakeAgent;
-import kidridicarus.common.agentbrain.BrainContactFrameInput;
-import kidridicarus.common.agentbrain.PowerupBrainContactFrameInput;
+import kidridicarus.common.agentspine.BasicAgentSpine;
 import kidridicarus.common.tool.SprFrameTool;
 import kidridicarus.game.KidIcarus.KidIcarusAudio;
 import kidridicarus.game.KidIcarus.KidIcarusPow;
@@ -25,15 +24,15 @@ class AngelHeartBrain {
 	}
 
 	private AgentHooks parentHooks;
-	private AngelHeartBody body;
+	private BasicAgentSpine spine;
 	private float moveStateTimer;
 	private boolean despawnMe;
 	private boolean isUsed;
 	private AngelHeartSize heartSize;
 
-	AngelHeartBrain(AgentHooks parentHooks, AngelHeartBody body, int heartCount) {
+	AngelHeartBrain(AgentHooks parentHooks, BasicAgentSpine spine, int heartCount) {
 		this.parentHooks = parentHooks;
-		this.body = body;
+		this.spine = spine;
 		moveStateTimer = 0f;
 		despawnMe = false;
 		isUsed = false;
@@ -53,16 +52,16 @@ class AngelHeartBrain {
 		}
 	}
 
-	void processContactFrame(BrainContactFrameInput cFrameInput) {
+	void processContactFrame() {
 		// exit if used
 		if(isUsed)
 			return;
-		if(!cFrameInput.isKeepAlive || cFrameInput.isDespawn) {
+		if(!spine.isContactKeepAlive() || spine.isContactDespawn()) {
 			despawnMe = true;
 			return;
 		}
 		// if any agents touching this powerup are able to take it, then push it to them
-		PowerupTakeAgent taker = ((PowerupBrainContactFrameInput) cFrameInput).powerupTaker;
+		PowerupTakeAgent taker = spine.getTouchingPowerupTaker();
 		if(taker == null)
 			return;
 		if(taker.onTakePowerup(new KidIcarusPow.AngelHeartPow(heartSize.hc)))
@@ -80,7 +79,7 @@ class AngelHeartBrain {
 			return null;
 		}
 		moveStateTimer += delta;
-		return SprFrameTool.place(body.getPosition());
+		return SprFrameTool.place(spine.getPosition());
 	}
 
 	AngelHeartSize getHeartSize() {

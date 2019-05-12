@@ -16,6 +16,7 @@ import kidridicarus.common.tool.AP_Tool;
 
 // note: solid when closed, non-solid when open
 public class KidIcarusDoor extends CorpusAgent implements TriggerTakeAgent, SolidAgent {
+	private KidIcarusDoorSpine spine;
 	private KidIcarusDoorBrain brain;
 	private KidIcarusDoorSprite sprite;
 
@@ -23,14 +24,16 @@ public class KidIcarusDoor extends CorpusAgent implements TriggerTakeAgent, Soli
 		super(agentHooks, properties);
 		// default to open state unless Agent is supposed to "expire immediately" (a closed door is a dead door?)
 		boolean isOpened = !properties.getBoolean(CommonKV.Spawn.KEY_EXPIRE, false);
-		body = new KidIcarusDoorBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties), isOpened);
-		brain = new KidIcarusDoorBrain(this, agentHooks, (KidIcarusDoorBody) body, isOpened,
-				AP_Tool.getTargetName(properties));
+		spine = new KidIcarusDoorSpine(this);
+		body = new KidIcarusDoorBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties), isOpened,
+				spine.createAgentSensor());
+		spine.setBody(body);
+		brain = new KidIcarusDoorBrain(this, agentHooks, spine, isOpened, AP_Tool.getTargetName(properties));
 		sprite = new KidIcarusDoorSprite(agentHooks.getAtlas(), body.getPosition(), isOpened);
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) {
-					brain.processContactFrame(((KidIcarusDoorBody) body).processContactFrame());
+					brain.processContactFrame();
 				}
 			});
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {
@@ -49,6 +52,6 @@ public class KidIcarusDoor extends CorpusAgent implements TriggerTakeAgent, Soli
 
 	@Override
 	public void onTakeTrigger() {
-		brain.setOpened(false);
+		brain.onTakeTrigger();
 	}
 }

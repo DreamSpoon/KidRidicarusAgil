@@ -10,7 +10,8 @@ import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.agency.agentscript.ScriptedBodyState;
 import kidridicarus.common.agent.playeragent.PlayerAgentBody;
-import kidridicarus.common.agentbrain.BrainContactFrameInput;
+import kidridicarus.common.agentsensor.AgentContactHoldSensor;
+import kidridicarus.common.agentsensor.SolidContactSensor;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.CommonCF.Alias;
 import kidridicarus.common.info.UInfo;
@@ -42,21 +43,20 @@ class PitBody extends PlayerAgentBody {
 	private static final CFBitSeq GROUND_SENSOR_CFMASK = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT,
 			CommonCF.Alias.SEMISOLID_FLOOR_FOOT_BIT);
 
-	private PitSpine spine;
+	private SolidContactSensor solidSensor;
+	private AgentContactHoldSensor agentSensor;
 	private boolean isAgentSensorEnabled;
 	private Fixture agentSensorFixture;
 	private boolean isDuckingForm;
 
-	PitBody(Pit parent, World world, Vector2 position, Vector2 velocity, boolean isDuckingForm) {
+	PitBody(Pit parent, World world, Vector2 position, Vector2 velocity, boolean isDuckingForm,
+			SolidContactSensor solidSensor, AgentContactHoldSensor agentSensor) {
 		super(parent, world, position, velocity);
+		this.solidSensor = solidSensor;
+		this.agentSensor = agentSensor;
 		this.isDuckingForm = isDuckingForm;
 		isAgentSensorEnabled = true;
 		defineBody(new Rectangle(position.x, position.y, 0f, 0f), velocity);
-	}
-
-	BrainContactFrameInput processContactFrame() {
-		return new BrainContactFrameInput(spine.getCurrentRoom(), spine.isContactKeepAlive(),
-				spine.isContactDespawn());
 	}
 
 	@Override
@@ -71,7 +71,6 @@ class PitBody extends PlayerAgentBody {
 			setBoundsSize(STAND_BODY_WIDTH, STAND_BODY_HEIGHT);
 		b2body = B2DFactory.makeDynamicBody(world, bounds.getCenter(new Vector2()), velocity);
 		b2body.setGravityScale(GRAVITY_SCALE);
-		spine = new PitSpine(this);
 		createFixtures();
 		resetPrevValues();
 	}
@@ -86,15 +85,15 @@ class PitBody extends PlayerAgentBody {
 		// create agent sensor fixture
 		if(isAgentSensorEnabled) {
 			agentSensorFixture = B2DFactory.makeSensorBoxFixture(b2body, AS_ENABLED_CFCAT, AS_ENABLED_CFMASK,
-					spine.createAgentSensor(), getBounds().width, getBounds().height);
+					agentSensor, getBounds().width, getBounds().height);
 		}
 		else {
 			agentSensorFixture = B2DFactory.makeSensorBoxFixture(b2body, AS_DISABLED_CFCAT, AS_DISABLED_CFMASK,
-					spine.createAgentSensor(), getBounds().width, getBounds().height);
+					agentSensor, getBounds().width, getBounds().height);
 		}
 		// create on ground sensor fixture
-		B2DFactory.makeSensorBoxFixture(b2body, GROUND_SENSOR_CFCAT, GROUND_SENSOR_CFMASK,
-				spine.createSolidContactSensor(), FOOT_WIDTH, FOOT_HEIGHT, new Vector2(0f, -getBounds().height/2f));
+		B2DFactory.makeSensorBoxFixture(b2body, GROUND_SENSOR_CFCAT, GROUND_SENSOR_CFMASK, solidSensor,
+				FOOT_WIDTH, FOOT_HEIGHT, new Vector2(0f, -getBounds().height/2f));
 	}
 
 	void useScriptedBodyState(ScriptedBodyState sbState) {
@@ -152,9 +151,5 @@ class PitBody extends PlayerAgentBody {
 
 	boolean isDuckingForm() {
 		return isDuckingForm;
-	}
-
-	PitSpine getSpine() {
-		return spine;
 	}
 }

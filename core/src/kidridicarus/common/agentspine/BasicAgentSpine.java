@@ -25,17 +25,23 @@ import kidridicarus.common.tool.Direction4;
  * simply using AgentBody.
  */
 public class BasicAgentSpine {
+	protected Agent parentAgent;
 	protected AgentBody body;
 	protected AgentContactHoldSensor agentSensor;
 
-	public BasicAgentSpine(AgentBody body) {
-		this.body = body;
+	public BasicAgentSpine(Agent parentAgent) {
+		this.parentAgent = parentAgent;
+		body = null;
 		agentSensor = null;
 	}
 
 	public AgentContactHoldSensor createAgentSensor() {
-		agentSensor = new AgentContactHoldSensor(body);
+		agentSensor = new AgentContactHoldSensor(parentAgent);
 		return agentSensor;
+	}
+
+	public void setBody(AgentBody body) {
+		this.body = body;
 	}
 
 	public PowerupTakeAgent getTouchingPowerupTaker() {
@@ -125,5 +131,13 @@ public class BasicAgentSpine {
 		else
 			// is other on left side of this?
 			return UInfo.M2Tx(otherPos.x) < UInfo.M2Tx(body.getPosition().x);
+	}
+
+	public Vector2 getPosition() {
+		return body.getPosition();
+	}
+
+	public void zeroVelocity(boolean zeroX, boolean zeroY) {
+		body.zeroVelocity(zeroX, zeroY);
 	}
 }

@@ -6,8 +6,8 @@ import com.badlogic.gdx.physics.box2d.World;
 
 import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.agentbody.CFBitSeq;
-import kidridicarus.common.agentbrain.ContactDmgBrainContactFrameInput;
-import kidridicarus.common.agentspine.SolidContactSpine;
+import kidridicarus.common.agentsensor.AgentContactHoldSensor;
+import kidridicarus.common.agentsensor.SolidContactSensor;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.tool.B2DFactory;
@@ -24,10 +24,14 @@ class PitArrowBody extends AgentBody {
 			CommonCF.Alias.DESPAWN_BIT, CommonCF.Alias.ROOM_BIT);
 
 	private Direction4 arrowDir;
-	private SolidContactSpine spine;
+	private SolidContactSensor solidSensor;
+	private AgentContactHoldSensor agentSensor;
 
-	PitArrowBody(PitArrow parent, World world, Vector2 position, Vector2 velocity, Direction4 arrowDir) {
+	PitArrowBody(PitArrow parent, World world, Vector2 position, Vector2 velocity, Direction4 arrowDir,
+			SolidContactSensor solidSensor, AgentContactHoldSensor agentSensor) {
 		super(parent, world);
+		this.solidSensor = solidSensor;
+		this.agentSensor = agentSensor;
 		this.arrowDir = arrowDir;
 		defineBody(new Rectangle(position.x-BODY_WIDTH/2f, position.y-BODY_HEIGHT/2f, BODY_WIDTH, BODY_HEIGHT),
 				velocity);
@@ -47,21 +51,11 @@ class PitArrowBody extends AgentBody {
 		b2body = B2DFactory.makeDynamicBody(world, bounds.getCenter(new Vector2()), velocity);
 		b2body.setGravityScale(GRAVITY_SCALE);
 		b2body.setBullet(true);
-		spine = new SolidContactSpine(this);
 		// create main fixture
-		B2DFactory.makeBoxFixture(b2body, MAIN_CFCAT, MAIN_CFMASK, spine.createSolidContactSensor(),
-				getBounds().width, getBounds().height);
+		B2DFactory.makeBoxFixture(b2body, MAIN_CFCAT, MAIN_CFMASK, solidSensor, getBounds().width,
+				getBounds().height);
 		// create agent contact sensor fixture
-		B2DFactory.makeSensorBoxFixture(b2body, AS_CFCAT, AS_CFMASK, spine.createAgentSensor(),
-				getBounds().width, getBounds().height);
-	}
-
-	ContactDmgBrainContactFrameInput processContactFrame() {
-		return new ContactDmgBrainContactFrameInput(spine.getCurrentRoom(), spine.isContactKeepAlive(),
-				spine.isContactDespawn(), spine.getContactDmgTakeAgents());
-	}
-
-	SolidContactSpine getSpine() {
-		return spine;
+		B2DFactory.makeSensorBoxFixture(b2body, AS_CFCAT, AS_CFMASK, agentSensor, getBounds().width,
+				getBounds().height);
 	}
 }

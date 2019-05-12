@@ -42,14 +42,18 @@ import kidridicarus.game.KidIcarus.agent.player.pit.HUD.PitHUD;
  */
 public class Pit extends PlayerAgent implements PowerupTakeAgent, ContactDmgTakeAgent {
 	private PitHUD playerHUD;
+	private PitSpine spine;
 	private PitBrain brain;
 	private PitSprite sprite;
 
 	public Pit(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
+		spine = new PitSpine(this);
 		body = new PitBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties),
-				AP_Tool.safeGetVelocity(properties), false);
-		brain = new PitBrain(this, agentHooks, (PitBody) body,
+				AP_Tool.safeGetVelocity(properties), false, spine.createSolidContactSensor(),
+				spine.createAgentSensor());
+		spine.setBody(body);
+		brain = new PitBrain(this, agentHooks, spine,
 				properties.getDirection4(CommonKV.KEY_DIRECTION, Direction4.NONE).isRight(),
 				properties.getInteger(KidIcarusKV.KEY_HEALTH, null),
 				properties.getInteger(KidIcarusKV.KEY_HEART_COUNT, null));
@@ -58,9 +62,7 @@ public class Pit extends PlayerAgent implements PowerupTakeAgent, ContactDmgTake
 		createPropertyListeners();
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
-				public void update(FrameTime frameTime) {
-					brain.processContactFrame(((PitBody) body).processContactFrame());
-				}
+				public void update(FrameTime frameTime) { brain.processContactFrame(); }
 			});
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {
 				@Override

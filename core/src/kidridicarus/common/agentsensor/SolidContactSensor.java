@@ -18,7 +18,7 @@ public class SolidContactSensor extends AgentContactSensor {
 	private LinkedList<SolidLineSeg> lineSegContacts;
 	private LinkedList<Agent> agentContacts;
 
-	public SolidContactSensor(Object parent) {
+	public SolidContactSensor(Agent parent) {
 		super(parent);
 		lineSegContacts = new LinkedList<SolidLineSeg>();
 		agentContacts = new LinkedList<Agent>();

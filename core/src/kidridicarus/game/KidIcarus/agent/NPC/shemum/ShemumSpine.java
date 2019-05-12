@@ -2,6 +2,7 @@ package kidridicarus.game.KidIcarus.agent.NPC.shemum;
 
 import com.badlogic.gdx.math.Vector2;
 
+import kidridicarus.agency.Agent;
 import kidridicarus.common.agent.playeragent.PlayerAgent;
 import kidridicarus.common.agentsensor.AgentContactHoldSensor;
 import kidridicarus.common.agentspine.PlayerContactNerve;
@@ -14,8 +15,8 @@ class ShemumSpine extends SolidContactSpine {
 
 	private PlayerContactNerve pcNerve;
 
-	ShemumSpine(ShemumBody body) {
-		super(body);
+	ShemumSpine(Agent parentAgent) {
+		super(parentAgent);
 		pcNerve = new PlayerContactNerve();
 	}
 

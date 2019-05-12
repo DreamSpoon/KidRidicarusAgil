@@ -7,8 +7,6 @@ import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.common.agent.optional.ContactDmgTakeAgent;
 import kidridicarus.common.agent.playeragent.PlayerAgent;
 import kidridicarus.common.agent.roombox.RoomBox;
-import kidridicarus.common.agentbrain.BrainContactFrameInput;
-import kidridicarus.common.agentbrain.ContactDmgBrainContactFrameInput;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.SprFrameTool;
 import kidridicarus.game.KidIcarus.KidIcarusAudio;
@@ -25,7 +23,7 @@ class ShemumBrain {
 
 	private Shemum parent;
 	private AgentHooks parentHooks;
-	private ShemumBody body;
+	private ShemumSpine spine;
 	private float moveStateTimer;
 	private MoveState moveState;
 	private boolean isFacingRight;
@@ -33,10 +31,10 @@ class ShemumBrain {
 	private boolean despawnMe;
 	private RoomBox lastKnownRoom;
 
-	ShemumBrain(Shemum parent, AgentHooks parentHooks, ShemumBody body) {
+	ShemumBrain(Shemum parent, AgentHooks parentHooks, ShemumSpine spine) {
 		this.parent = parent;
 		this.parentHooks = parentHooks;
-		this.body = body;
+		this.spine = spine;
 		moveStateTimer = 0f;
 		moveState = MoveState.WALK;
 		isFacingRight = false;
@@ -45,16 +43,16 @@ class ShemumBrain {
 		lastKnownRoom = null;
 	}
 
-	void processContactFrame(BrainContactFrameInput cFrameInput) {
+	void processContactFrame() {
 		// push damage to contact damage agents
-		for(ContactDmgTakeAgent agent : ((ContactDmgBrainContactFrameInput) cFrameInput).contactDmgTakeAgents)
-			agent.onTakeDamage(parent, GIVE_DAMAGE, body.getPosition());
+		for(ContactDmgTakeAgent agent : spine.getContactDmgTakeAgents())
+			agent.onTakeDamage(parent, GIVE_DAMAGE, spine.getPosition());
 		// if alive and not touching keep alive box, or if touching despawn, then despawn
-		if(isAlive && (!cFrameInput.isKeepAlive || cFrameInput.isDespawn))
+		if(isAlive && (!spine.isContactKeepAlive() || spine.isContactDespawn()))
 			despawnMe = true;
 		// if not dead or despawning, and if room is known, then update last known room
-		if(moveState != MoveState.DEAD && !despawnMe && cFrameInput.room != null)
-			lastKnownRoom = cFrameInput.room;
+		if(moveState != MoveState.DEAD && !despawnMe && spine.getCurrentRoom() != null)
+			lastKnownRoom = spine.getCurrentRoom();
 	}
 
 	SpriteFrameInput processFrame(FrameTime frameTime) {
@@ -65,46 +63,46 @@ class ShemumBrain {
 		}
 
 		// if move is blocked by solid then change facing dir
-		if(body.getSpine().isSideMoveBlocked(isFacingRight))
+		if(spine.isSideMoveBlocked(isFacingRight))
 			isFacingRight = !isFacingRight;
 
 		MoveState nextMoveState = getNextMoveState();
 		boolean isMoveStateChange = nextMoveState != moveState;
 		switch(nextMoveState) {
 			case WALK:
-				body.getSpine().doWalkMove(isFacingRight);
+				spine.doWalkMove(isFacingRight);
 				break;
 			case FALL1:
 				break;
 			case FALL2:
 				// ensure fall straight down
 				if(isMoveStateChange)
-					body.zeroVelocity(true, false);
+					spine.zeroVelocity(true, false);
 				break;
 			case STRIKE_GROUND:
 				// turn to face player on first frame of ground strike
 				if(isMoveStateChange) {
-					if(body.getSpine().getPlayerDir().isRight())
+					if(spine.getPlayerDir().isRight())
 						isFacingRight = true;
 					else
 						isFacingRight = false;
 				}
 				break;
 			case DEAD:
-				parentHooks.createAgent(VanishPoof.makeAP(body.getPosition(), false));
-				parentHooks.createAgent(AngelHeart.makeAP(body.getPosition(), DROP_HEART_COUNT));
+				parentHooks.createAgent(VanishPoof.makeAP(spine.getPosition(), false));
+				parentHooks.createAgent(AngelHeart.makeAP(spine.getPosition(), DROP_HEART_COUNT));
 				parentHooks.removeThisAgent();
 				parentHooks.getEar().playSound(KidIcarusAudio.Sound.General.SMALL_POOF);
 				break;
 		}
 
 		// do space wrap last so that contacts are maintained
-		body.getSpine().checkDoSpaceWrap(lastKnownRoom);
+		spine.checkDoSpaceWrap(lastKnownRoom);
 
 		moveStateTimer = isMoveStateChange ? 0f : moveStateTimer+frameTime.timeDelta;
 		moveState = nextMoveState;
 
-		return SprFrameTool.placeAnimFaceR(body.getPosition(), frameTime, isFacingRight);
+		return SprFrameTool.placeAnimFaceR(spine.getPosition(), frameTime, isFacingRight);
 	}
 
 	private MoveState getNextMoveState() {
@@ -112,14 +110,14 @@ class ShemumBrain {
 			return MoveState.DEAD;
 		else if(moveState == MoveState.WALK) {
 			// if not on ground and moving down then start fall...
-			if(!body.getSpine().isOnGround() && body.getSpine().isMovingInDir(Direction4.DOWN))
+			if(!spine.isOnGround() && spine.isMovingInDir(Direction4.DOWN))
 				return MoveState.FALL1;
 			// otherwise continue walk to prevent "sticking" to vertexes of ledges
 			else
 				return MoveState.WALK;
 		}
 		else if(moveState == MoveState.FALL1 || moveState == MoveState.FALL2) {
-			if(body.getSpine().isOnGround())
+			if(spine.isOnGround())
 				return MoveState.STRIKE_GROUND;
 			else {
 				if(moveState == MoveState.FALL2 || moveStateTimer > FALL1_TIME)

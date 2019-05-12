@@ -2,6 +2,8 @@ package kidridicarus.game.KidIcarus.agent.player.pit;
 
 import com.badlogic.gdx.math.Vector2;
 
+import kidridicarus.agency.Agent;
+import kidridicarus.agency.agentscript.ScriptedBodyState;
 import kidridicarus.common.agent.playeragent.PlayerSpine;
 import kidridicarus.common.info.UInfo;
 
@@ -16,8 +18,8 @@ class PitSpine extends PlayerSpine {
 	private static final float JUMPUP_CONSTVEL = 1.6f;
 	private static final Vector2 DEAD_VEL = UInfo.VectorP2M(0f, -120);
 
-	PitSpine(PitBody body) {
-		super(body);
+	public PitSpine(Agent parentAgent) {
+		super(parentAgent);
 	}
 
 	// apply walk impulse and cap horizontal velocity.
@@ -79,5 +81,9 @@ class PitSpine extends PlayerSpine {
 	void applyDead() {
 		((PitBody) body).applyDead();
 		body.setVelocity(DEAD_VEL);
+	}
+
+	public void useScriptedBodyState(ScriptedBodyState scriptedBodyState) {
+		((PitBody) body).useScriptedBodyState(scriptedBodyState);
 	}
 }

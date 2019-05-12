@@ -6,7 +6,7 @@ import com.badlogic.gdx.physics.box2d.World;
 
 import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.agentbody.CFBitSeq;
-import kidridicarus.common.agentbrain.ContactDmgBrainContactFrameInput;
+import kidridicarus.common.agentsensor.AgentContactHoldSensor;
 import kidridicarus.common.agentsensor.SolidContactSensor;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.UInfo;
@@ -26,10 +26,16 @@ class ShemumBody extends AgentBody {
 	private static final CFBitSeq AS_CFMASK = new CFBitSeq(CommonCF.Alias.AGENT_BIT,
 			CommonCF.Alias.DESPAWN_BIT, CommonCF.Alias.KEEP_ALIVE_BIT, CommonCF.Alias.ROOM_BIT);
 
-	private ShemumSpine spine;
+	private SolidContactSensor solidSensor;
+	private AgentContactHoldSensor agentSensor;
+	private AgentContactHoldSensor playerSensor;
 
-	ShemumBody(Shemum parent, World world, Vector2 position, Vector2 velocity) {
+	ShemumBody(Shemum parent, World world, Vector2 position, Vector2 velocity, SolidContactSensor solidSensor,
+			AgentContactHoldSensor agentSensor, AgentContactHoldSensor playerSensor) {
 		super(parent, world);
+		this.solidSensor = solidSensor;
+		this.agentSensor = agentSensor;
+		this.playerSensor = playerSensor;
 		defineBody(new Rectangle(position.x-BODY_WIDTH/2f, position.y-BODY_HEIGHT/2f, BODY_WIDTH, BODY_HEIGHT),
 				velocity);
 	}
@@ -42,28 +48,17 @@ class ShemumBody extends AgentBody {
 		// set body size info and create new body
 		setBoundsSize(BODY_WIDTH, BODY_HEIGHT);
 		b2body = B2DFactory.makeDynamicBody(world, bounds.getCenter(new Vector2()), velocity);
-		spine = new ShemumSpine(this);
 		// main body fixture
-		SolidContactSensor solidSensor = spine.createSolidContactSensor();
 		B2DFactory.makeBoxFixture(b2body, MAIN_CFCAT, MAIN_CFMASK, solidSensor, getBounds().width,
 				getBounds().height);
 		// agent sensor fixture
-		B2DFactory.makeSensorBoxFixture(b2body, AS_CFCAT, AS_CFMASK, spine.createAgentSensor(),
-				getBounds().width, getBounds().height);
+		B2DFactory.makeSensorBoxFixture(b2body, AS_CFCAT, AS_CFMASK, agentSensor, getBounds().width,
+				getBounds().height);
 		// ground sensor fixture
-		B2DFactory.makeSensorBoxFixture(b2body, CommonCF.SOLID_BODY_CFCAT, CommonCF.SOLID_BODY_CFMASK,
-				solidSensor, FOOT_WIDTH, FOOT_HEIGHT, new Vector2(0f, -getBounds().height/2f));
+		B2DFactory.makeSensorBoxFixture(b2body, CommonCF.SOLID_BODY_CFCAT, CommonCF.SOLID_BODY_CFMASK, solidSensor,
+				FOOT_WIDTH, FOOT_HEIGHT, new Vector2(0f, -getBounds().height/2f));
 		// create player sensor fixture that covers most of the screen and detects players to target
 		B2DFactory.makeSensorBoxFixture(b2body, CommonCF.AGENT_SENSOR_CFCAT, CommonCF.AGENT_SENSOR_CFMASK,
-				spine.createPlayerSensor(), PLAYER_SENSOR_WIDTH, PLAYER_SENSOR_HEIGHT, PLAYER_SENSOR_OFFSET);
-	}
-
-	ContactDmgBrainContactFrameInput processContactFrame() {
-		return new ContactDmgBrainContactFrameInput(spine.getCurrentRoom(), spine.isContactKeepAlive(),
-				spine.isContactDespawn(), spine.getContactDmgTakeAgents());
-	}
-
-	ShemumSpine getSpine() {
-		return spine;
+				playerSensor, PLAYER_SENSOR_WIDTH, PLAYER_SENSOR_HEIGHT, PLAYER_SENSOR_OFFSET);
 	}
 }

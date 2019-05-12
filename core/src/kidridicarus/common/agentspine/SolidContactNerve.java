@@ -2,15 +2,15 @@ package kidridicarus.common.agentspine;
 
 import com.badlogic.gdx.math.Rectangle;
 
-import kidridicarus.agency.agentbody.AgentBody;
+import kidridicarus.agency.Agent;
 import kidridicarus.common.agentsensor.SolidContactSensor;
 import kidridicarus.common.tool.Direction4;
 
 public class SolidContactNerve {
 	private SolidContactSensor solidSensor = null;
 
-	public SolidContactSensor createSolidContactSensor(AgentBody body) {
-		solidSensor = new SolidContactSensor(body);
+	public SolidContactSensor createSolidContactSensor(Agent agent) {
+		solidSensor = new SolidContactSensor(agent);
 		return solidSensor;
 	}
 

@@ -10,6 +10,7 @@ import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.agent.general.CorpusAgent;
+import kidridicarus.common.agentspine.SolidContactSpine;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.tool.AP_Tool;
@@ -18,22 +19,26 @@ import kidridicarus.game.KidIcarus.KidIcarusKV;
 import kidridicarus.game.KidIcarus.agent.player.pit.Pit;
 
 public class PitArrow extends CorpusAgent {
+	private SolidContactSpine spine;
 	private PitArrowBrain brain;
 	private PitArrowSprite sprite;
 
 	public PitArrow(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
 		Direction4 arrowDir = properties.getDirection4(CommonKV.KEY_DIRECTION, Direction4.NONE);
+		spine = new SolidContactSpine(this);
 		body = new PitArrowBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties),
-				AP_Tool.safeGetVelocity(properties), arrowDir);
+				AP_Tool.safeGetVelocity(properties), arrowDir, spine.createSolidContactSensor(),
+				spine.createAgentSensor());
+		spine.setBody(body);
 		brain = new PitArrowBrain(properties.get(CommonKV.KEY_PARENT_AGENT, null, Pit.class), agentHooks,
-				(PitArrowBody) body, properties.getBoolean(CommonKV.Spawn.KEY_EXPIRE, false), arrowDir);
+				spine, properties.getBoolean(CommonKV.Spawn.KEY_EXPIRE, false), arrowDir);
 		sprite = new PitArrowSprite(agentHooks.getAtlas(),
 				new PitArrowSpriteFrameInput(body.getPosition(), arrowDir));
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) {
-					brain.processContactFrame(((PitArrowBody) body).processContactFrame());
+					brain.processContactFrame();
 				}
 			});
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {

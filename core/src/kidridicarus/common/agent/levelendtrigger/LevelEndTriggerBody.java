@@ -28,7 +28,7 @@ class LevelEndTriggerBody extends AgentBody {
 		// set body size info and create new body
 		setBoundsSize(bounds.width, bounds.height);
 		b2body = B2DFactory.makeStaticBody(world, bounds.getCenter(new Vector2()));
-		playerSensor = new OneWayContactSensor(this, true);
+		playerSensor = new OneWayContactSensor(parent, true);
 		B2DFactory.makeBoxFixture(b2body, CommonCF.AGENT_SENSOR_CFCAT, CommonCF.AGENT_SENSOR_CFMASK, playerSensor,
 				getBounds().width, getBounds().height);
 	}

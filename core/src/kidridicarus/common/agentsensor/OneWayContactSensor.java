@@ -14,7 +14,7 @@ public class OneWayContactSensor extends AgentContactSensor {
 	private LinkedList<Agent> contacts;
 	private boolean isBeginSensor;
 
-	public OneWayContactSensor(Object parent, boolean isBeginSensor) {
+	public OneWayContactSensor(Agent parent, boolean isBeginSensor) {
 		super(parent);
 		this.isBeginSensor = isBeginSensor;
 		contacts = new LinkedList<Agent>();

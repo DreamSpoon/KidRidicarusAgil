@@ -32,7 +32,7 @@ class AgentSpawnerBody extends AgentBody {
 		setBoundsSize(bounds.width, bounds.height);
 		b2body = B2DFactory.makeDynamicBody(world, bounds.getCenter(new Vector2()), velocity);
 		b2body.setGravityScale(GRAVITY_SCALE);
-		agentSensor = new AgentContactHoldSensor(this);
+		agentSensor = new AgentContactHoldSensor(parent);
 		B2DFactory.makeSensorBoxFixture(b2body, CFCAT_BITS, CFMASK_BITS, agentSensor, bounds.width, bounds.height);
 	}
 

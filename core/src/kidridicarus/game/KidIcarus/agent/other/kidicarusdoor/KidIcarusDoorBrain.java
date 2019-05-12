@@ -9,22 +9,24 @@ import kidridicarus.common.tool.AP_Tool;
 class KidIcarusDoorBrain {
 	private KidIcarusDoor parent;
 	private AgentHooks parentHooks;
-	private KidIcarusDoorBody body;
+	private KidIcarusDoorSpine spine;
 	private boolean isOpened;
 	private String exitSpawnerName;
+	private boolean isTriggered;
 
-	KidIcarusDoorBrain(KidIcarusDoor parent, AgentHooks parentHooks, KidIcarusDoorBody body,
-			boolean isOpened, String exitSpawnerName) {
+	KidIcarusDoorBrain(KidIcarusDoor parent, AgentHooks parentHooks, KidIcarusDoorSpine spine, boolean isOpened,
+			String exitSpawnerName) {
 		this.parent = parent;
 		this.parentHooks = parentHooks;
-		this.body = body;
+		this.spine = spine;
 		this.isOpened = isOpened;
 		this.exitSpawnerName = exitSpawnerName;
+		isTriggered = false;
 	}
 
-	void processContactFrame(KidIcarusDoorBrainContactFrameInput cFrameInput) {
+	void processContactFrame() {
 		// exit if not opened, or if zero players contacting door
-		if(!isOpened || cFrameInput.playerContacts.isEmpty())
+		if(!isOpened || spine.getPlayerContacts().isEmpty())
 			return;
 		// exit if spawner doesn't exist or is the wrong class
 		Agent exitSpawner = AP_Tool.getNamedAgent(exitSpawnerName, parentHooks);
@@ -34,16 +36,20 @@ class KidIcarusDoorBrain {
 					", exitSpawner="+exitSpawner);
 		}
 		// pass a separate door script to each player contacting this door
-		for(PlayerAgent agent : cFrameInput.playerContacts)
+		for(PlayerAgent agent : spine.getPlayerContacts())
 			agent.getSupervisor().startScript(new KidIcarusDoorScript(parent, exitSpawner));
 	}
 
 	KidIcarusDoorSpriteFrameInput processFrame() {
-		body.setOpened(isOpened);
-		return new KidIcarusDoorSpriteFrameInput(body.getPosition(), isOpened);
+		if(isTriggered) {
+			isTriggered = false;
+			isOpened = !isOpened;
+			spine.setOpened(isOpened);
+		}
+		return new KidIcarusDoorSpriteFrameInput(spine.getPosition(), isOpened);
 	}
 
-	void setOpened(boolean isOpened) {
-		this.isOpened = isOpened;
+	void onTakeTrigger() {
+		isTriggered = true;
 	}
 }

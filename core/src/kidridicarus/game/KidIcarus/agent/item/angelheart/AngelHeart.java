@@ -10,25 +10,29 @@ import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.agent.general.CorpusAgent;
+import kidridicarus.common.agentspine.BasicAgentSpine;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.tool.AP_Tool;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
 import kidridicarus.game.KidIcarus.agent.item.angelheart.AngelHeartBrain.AngelHeartSize;
 
 public class AngelHeart extends CorpusAgent {
+	private BasicAgentSpine spine;
 	private AngelHeartBrain brain;
 	private AngelHeartSprite sprite;
 
 	public AngelHeart(AgentHooks agentHooks, ObjectProperties agentProps) {
 		super(agentHooks, agentProps);
-		body = new AngelHeartBody(this, agentHooks.getWorld(), AP_Tool.getCenter(agentProps));
-		brain = new AngelHeartBrain(agentHooks, (AngelHeartBody) body,
-				agentProps.get(KidIcarusKV.KEY_HEART_COUNT, 1, Integer.class));
+		spine = new BasicAgentSpine(this);
+		body = new AngelHeartBody(this, agentHooks.getWorld(), AP_Tool.getCenter(agentProps),
+				spine.createAgentSensor());
+		spine.setBody(body);
+		brain = new AngelHeartBrain(agentHooks, spine, agentProps.get(KidIcarusKV.KEY_HEART_COUNT, 1, Integer.class));
 		sprite = new AngelHeartSprite(agentHooks.getAtlas(), AP_Tool.getCenter(agentProps), brain.getHeartSize());
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) {
-					brain.processContactFrame(((AngelHeartBody) body).processContactFrame());
+					brain.processContactFrame();
 				}
 			});
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {

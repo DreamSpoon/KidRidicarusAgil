@@ -2,13 +2,14 @@ package kidridicarus.common.agent.playeragent;
 
 import com.badlogic.gdx.math.Vector2;
 
+import kidridicarus.agency.Agent;
 import kidridicarus.common.agent.scrollkillbox.ScrollKillBox;
 import kidridicarus.common.agentspine.SolidContactSpine;
 import kidridicarus.common.metaagent.tiledmap.solidlayer.SolidTiledMapAgent;
 
 public class PlayerSpine extends SolidContactSpine {
-	public PlayerSpine(PlayerAgentBody body) {
-		super(body);
+	public PlayerSpine(Agent parentAgent) {
+		super(parentAgent);
 	}
 
 	protected void applyHorizontalImpulse(boolean moveRight, float amt) {

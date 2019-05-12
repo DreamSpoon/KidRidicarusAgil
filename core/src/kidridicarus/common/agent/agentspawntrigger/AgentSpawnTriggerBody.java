@@ -18,8 +18,8 @@ class AgentSpawnTriggerBody extends FollowBoxBody {
 
 	AgentSpawnTriggerBody(AgentSpawnTrigger parent, World world, Rectangle bounds) {
 		super(parent, world, bounds, true);
-		beginContactSensor = new OneWayContactSensor(this, true);
-		endContactSensor = new OneWayContactSensor(this, false);
+		beginContactSensor = new OneWayContactSensor(parent, true);
+		endContactSensor = new OneWayContactSensor(parent, false);
 		beginContactSensor.chainTo(endContactSensor);
 	}
 
