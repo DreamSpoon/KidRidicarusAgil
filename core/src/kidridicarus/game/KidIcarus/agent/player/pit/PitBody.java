@@ -59,8 +59,7 @@ class PitBody extends PlayerAgentBody {
 		defineBody(new Rectangle(position.x, position.y, 0f, 0f), velocity);
 	}
 
-	@Override
-	protected void defineBody(Rectangle bounds, Vector2 velocity) {
+	private void defineBody(Rectangle bounds, Vector2 velocity) {
 		// dispose the old body if it exists
 		if(b2body != null)
 			world.destroyBody(b2body);

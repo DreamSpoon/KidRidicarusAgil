@@ -139,7 +139,7 @@ class PitBrain {
 			processShoot(frameTime, moveAdvice);
 
 			// do space wrap last so that contacts are maintained
-			spine.checkDoSpaceWrap(lastKnownRoom);
+//			spine.checkDoSpaceWrap(lastKnownRoom);
 		}
 
 		if((moveState.isPreJump() && nextMoveState.isPreJump()) || (moveState.isJump() && nextMoveState.isJump()))

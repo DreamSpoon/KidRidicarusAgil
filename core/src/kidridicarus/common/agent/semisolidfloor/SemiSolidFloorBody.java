@@ -18,15 +18,6 @@ class SemiSolidFloorBody extends AgentBody {
 
 	SemiSolidFloorBody(Agent parent, World world, Rectangle bounds) {
 		super(parent, world);
-		defineBody(bounds);
-	}
-
-	// velocity is ignored. TODO mouse joint needed to implement velocity (properly)
-	@Override
-	protected void defineBody(Rectangle bounds, Vector2 velocity) {
-		// dispose the old body if it exists
-		if(b2body != null)
-			world.destroyBody(b2body);
 		// set body size info and create new body
 		setBoundsSize(bounds.width, bounds.height);
 		b2body = B2DFactory.makeStaticBody(world, bounds.getCenter(new Vector2()));

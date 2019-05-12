@@ -9,7 +9,6 @@ import com.badlogic.gdx.utils.Disposable;
 
 import kidridicarus.agency.Agent;
 import kidridicarus.common.info.CommonCF;
-import kidridicarus.common.info.UInfo;
 
 /*
  * Assume that an AgentBody can contain exactly one Box2D body. If more bodies are needed then a body list
@@ -30,34 +29,11 @@ public abstract class AgentBody implements Disposable {
 	// bounds size is for information purposes only, it is not necessarily the current dimensions of b2body
 	private Vector2 boundsSize;
 
-	protected abstract void defineBody(Rectangle bounds, Vector2 velocity);
-	protected void defineBody(Rectangle bounds) {
-		defineBody(bounds, new Vector2(0f, 0f));
-	}
-
 	public AgentBody(Agent parent, World world) {
 		this.parent = parent;
 		this.world = world;
 		b2body = null;
 		boundsSize = new Vector2(0f, 0f);
-	}
-
-	public void checkDoDefineBody(Vector2 position, boolean keepVelocity) {
-		// exit if the new position is the same as current position
-		if(position.epsilonEquals(b2body.getPosition(), UInfo.POS_EPSILON)) {
-			// zero velocity if needed
-			if(!keepVelocity)
-				b2body.setLinearVelocity(0f,  0f);
-			return;
-		}
-		if(keepVelocity) {
-			defineBody(new Rectangle(position.x-getBounds().width/2f, position.y-getBounds().height/2f,
-					getBounds().width, getBounds().height), b2body.getLinearVelocity());
-		}
-		else {
-			defineBody(new Rectangle(position.x-getBounds().width/2f, position.y-getBounds().height/2f,
-					getBounds().width, getBounds().height), new Vector2(0f, 0f));
-		}
 	}
 
 	public Agent getParent() {

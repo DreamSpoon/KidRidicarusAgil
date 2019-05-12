@@ -63,7 +63,7 @@ class PitArrowBrain {
 			return null;
 		}
 		// do space wrap last so that contacts are maintained
-		spine.checkDoSpaceWrap(lastKnownRoom);
+//		spine.checkDoSpaceWrap(lastKnownRoom);
 		return new PitArrowSpriteFrameInput(spine.getPosition(), arrowDir);
 	}
 }

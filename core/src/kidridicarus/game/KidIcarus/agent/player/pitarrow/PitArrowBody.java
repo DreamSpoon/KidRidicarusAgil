@@ -1,6 +1,5 @@
 package kidridicarus.game.KidIcarus.agent.player.pitarrow;
 
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 
@@ -23,32 +22,17 @@ class PitArrowBody extends AgentBody {
 	private static final CFBitSeq AS_CFMASK = new CFBitSeq(CommonCF.Alias.AGENT_BIT, CommonCF.Alias.KEEP_ALIVE_BIT,
 			CommonCF.Alias.DESPAWN_BIT, CommonCF.Alias.ROOM_BIT);
 
-	private Direction4 arrowDir;
-	private SolidContactSensor solidSensor;
-	private AgentContactHoldSensor agentSensor;
-
 	PitArrowBody(PitArrow parent, World world, Vector2 position, Vector2 velocity, Direction4 arrowDir,
 			SolidContactSensor solidSensor, AgentContactHoldSensor agentSensor) {
 		super(parent, world);
-		this.solidSensor = solidSensor;
-		this.agentSensor = agentSensor;
-		this.arrowDir = arrowDir;
-		defineBody(new Rectangle(position.x-BODY_WIDTH/2f, position.y-BODY_HEIGHT/2f, BODY_WIDTH, BODY_HEIGHT),
-				velocity);
-	}
 
-	@Override
-	protected void defineBody(Rectangle bounds, Vector2 velocity) {
-		// dispose the old body if it exists
-		if(b2body != null)
-			world.destroyBody(b2body);
 		// set body size info and create new body
 		if(arrowDir.isHorizontal())
 			setBoundsSize(BODY_WIDTH, BODY_HEIGHT);
 		// if vertical then rotate body size by 90 degrees
 		else
 			setBoundsSize(BODY_HEIGHT, BODY_WIDTH);
-		b2body = B2DFactory.makeDynamicBody(world, bounds.getCenter(new Vector2()), velocity);
+		b2body = B2DFactory.makeDynamicBody(world, position, velocity);
 		b2body.setGravityScale(GRAVITY_SCALE);
 		b2body.setBullet(true);
 		// create main fixture

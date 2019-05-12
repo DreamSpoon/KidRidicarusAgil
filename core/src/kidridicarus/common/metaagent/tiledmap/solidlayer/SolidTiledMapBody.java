@@ -15,13 +15,6 @@ class SolidTiledMapBody extends AgentBody {
 
 	SolidTiledMapBody(SolidTiledMapAgent parent, World world, Rectangle bounds) {
 		super(parent, world);
-		defineBody(bounds);
-	}
-
-	// TODO what if body is redefined? how to delete all the old stuff and move it?
-	// Also, velocity is ignored.
-	@Override
-	protected void defineBody(Rectangle bounds, Vector2 velocity) {
 		setBoundsSize(bounds.width, bounds.height);
 		b2body = B2DFactory.makeStaticBody(world, bounds.getCenter(new Vector2()));
 		B2DFactory.makeSensorBoxFixture(b2body, CFCAT_BITS, CFMASK_BITS, this, bounds.width, bounds.height);

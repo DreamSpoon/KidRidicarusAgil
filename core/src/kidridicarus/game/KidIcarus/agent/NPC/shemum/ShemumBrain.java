@@ -97,7 +97,7 @@ class ShemumBrain {
 		}
 
 		// do space wrap last so that contacts are maintained
-		spine.checkDoSpaceWrap(lastKnownRoom);
+//		spine.checkDoSpaceWrap(lastKnownRoom);
 
 		moveStateTimer = isMoveStateChange ? 0f : moveStateTimer+frameTime.timeDelta;
 		moveState = nextMoveState;

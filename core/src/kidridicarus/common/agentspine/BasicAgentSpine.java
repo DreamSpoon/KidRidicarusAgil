@@ -2,7 +2,6 @@ package kidridicarus.common.agentspine;
 
 import java.util.List;
 
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.Agent;
@@ -14,7 +13,6 @@ import kidridicarus.common.agent.optional.PowerupTakeAgent;
 import kidridicarus.common.agent.playeragent.PlayerAgent;
 import kidridicarus.common.agent.roombox.RoomBox;
 import kidridicarus.common.agentsensor.AgentContactHoldSensor;
-import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.metaagent.tiledmap.solidlayer.SolidTiledMapAgent;
 import kidridicarus.common.tool.AP_Tool;
@@ -74,7 +72,7 @@ public class BasicAgentSpine {
 		return agentSensor.getFirstContactByClass(SolidTiledMapAgent.class);
 	}
 
-	public void checkDoSpaceWrap(RoomBox curRoom) {
+/*	public void checkDoSpaceWrap(RoomBox curRoom) {
 		// if no room, or no bounds, or no space wrap flag, then exit
 		if(curRoom == null)
 			return;
@@ -90,7 +88,7 @@ public class BasicAgentSpine {
 		else if(body.getPosition().x > roomBounds.x+roomBounds.width)
 			body.checkDoDefineBody(new Vector2(roomBounds.x, body.getPosition().y), true);
 	}
-
+*/
 	public boolean isMovingInDir(Direction4 dir) {
 		if(dir == null)
 			return false;
