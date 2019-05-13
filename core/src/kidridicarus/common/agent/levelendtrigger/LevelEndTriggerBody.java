@@ -4,8 +4,8 @@ import java.util.List;
 
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.common.agent.playeragent.PlayerAgent;
 import kidridicarus.common.agentsensor.OneWayContactSensor;
@@ -15,10 +15,10 @@ import kidridicarus.common.tool.B2DFactory;
 class LevelEndTriggerBody extends AgentBody {
 	private OneWayContactSensor playerSensor;
 
-	LevelEndTriggerBody(LevelEndTrigger parent, World world, Rectangle bounds) {
-		super(parent, world);
+	LevelEndTriggerBody(LevelEndTrigger parent, PhysicsHooks physHooks, Rectangle bounds) {
+		super(parent, physHooks);
 		setBoundsSize(bounds.width, bounds.height);
-		b2body = B2DFactory.makeStaticBody(world, bounds.getCenter(new Vector2()));
+		b2body = B2DFactory.makeStaticBody(physHooks, bounds.getCenter(new Vector2()));
 		playerSensor = new OneWayContactSensor(parent, true);
 		B2DFactory.makeBoxFixture(b2body, CommonCF.AGENT_SENSOR_CFCAT, CommonCF.AGENT_SENSOR_CFMASK, playerSensor,
 				getBounds().width, getBounds().height);

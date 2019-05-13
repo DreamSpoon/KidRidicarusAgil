@@ -25,7 +25,7 @@ public class KidIcarusDoor extends CorpusAgent implements TriggerTakeAgent, Soli
 		// default to open state unless Agent is supposed to "expire immediately" (a closed door is a dead door?)
 		boolean isOpened = !properties.getBoolean(CommonKV.Spawn.KEY_EXPIRE, false);
 		spine = new KidIcarusDoorSpine(this);
-		body = new KidIcarusDoorBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties), isOpened,
+		body = new KidIcarusDoorBody(this, agentHooks.physHooks, AP_Tool.getCenter(properties), isOpened,
 				spine.createAgentSensor());
 		spine.setBody(body);
 		brain = new KidIcarusDoorBrain(this, agentHooks, spine, isOpened, AP_Tool.getTargetName(properties));

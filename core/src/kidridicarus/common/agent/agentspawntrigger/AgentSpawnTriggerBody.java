@@ -1,8 +1,8 @@
 package kidridicarus.common.agent.agentspawntrigger;
 
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.agent.followbox.FollowBoxBody;
 import kidridicarus.common.agent.optional.EnableTakeAgent;
@@ -16,8 +16,8 @@ class AgentSpawnTriggerBody extends FollowBoxBody {
 	private OneWayContactSensor beginContactSensor;
 	private OneWayContactSensor endContactSensor;
 
-	AgentSpawnTriggerBody(AgentSpawnTrigger parent, World world, Rectangle bounds) {
-		super(parent, world, bounds, true);
+	AgentSpawnTriggerBody(AgentSpawnTrigger parent, PhysicsHooks physHooks, Rectangle bounds) {
+		super(parent, physHooks, bounds, true);
 		beginContactSensor = new OneWayContactSensor(parent, true);
 		endContactSensor = new OneWayContactSensor(parent, false);
 		beginContactSensor.chainTo(endContactSensor);

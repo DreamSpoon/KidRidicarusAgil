@@ -27,7 +27,7 @@ public class PitArrow extends CorpusAgent {
 		super(agentHooks, properties);
 		Direction4 arrowDir = properties.getDirection4(CommonKV.KEY_DIRECTION, Direction4.NONE);
 		spine = new SolidContactSpine(this);
-		body = new PitArrowBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties),
+		body = new PitArrowBody(this, agentHooks.physHooks, AP_Tool.getCenter(properties),
 				AP_Tool.safeGetVelocity(properties), arrowDir, spine.createSolidContactSensor(),
 				spine.createAgentSensor());
 		spine.setBody(body);

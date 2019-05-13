@@ -24,7 +24,7 @@ public class AngelHeart extends CorpusAgent {
 	public AngelHeart(AgentHooks agentHooks, ObjectProperties agentProps) {
 		super(agentHooks, agentProps);
 		spine = new BasicAgentSpine(this);
-		body = new AngelHeartBody(this, agentHooks.getWorld(), AP_Tool.getCenter(agentProps),
+		body = new AngelHeartBody(this, agentHooks.physHooks, AP_Tool.getCenter(agentProps),
 				spine.createAgentSensor());
 		spine.setBody(body);
 		brain = new AngelHeartBrain(agentHooks, spine, agentProps.get(KidIcarusKV.KEY_HEART_COUNT, 1, Integer.class));

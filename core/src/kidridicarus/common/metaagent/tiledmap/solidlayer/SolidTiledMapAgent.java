@@ -34,9 +34,9 @@ public class SolidTiledMapAgent extends CorpusAgent implements Disposable {
 		// changes are made in batches, so keep a queue of pending changes
 		tileChangeQ = new LinkedBlockingQueue<SolidTileChange>();
 		// The OTC map will create bodies with the World...
-		solidMap = new SolidTiledMap(agentHooks.getWorld(), solidLayers);
+		solidMap = new SolidTiledMap(agentHooks.physHooks, solidLayers);
 		// ... and a meta-body will be created that encompasses all the solid bound line bodies.
-		body = new SolidTiledMapBody(this, agentHooks.getWorld(), AP_Tool.getBounds(properties));
+		body = new SolidTiledMapBody(this, agentHooks.physHooks, AP_Tool.getBounds(properties));
 		// Agent has post update because:
 		//   -it may receive requests to modify the solid state of tiles inside itself during the regular Agency update
 		//   -it will process these requests in batch format during post-update

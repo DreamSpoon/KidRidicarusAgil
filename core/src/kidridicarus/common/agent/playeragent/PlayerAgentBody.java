@@ -1,8 +1,8 @@
 package kidridicarus.common.agent.playeragent;
 
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.Agent;
 import kidridicarus.agency.agentbody.AgentBody;
 
@@ -10,8 +10,8 @@ public abstract class PlayerAgentBody extends AgentBody {
 	private Vector2 prevPosition;
 	private Vector2 prevVelocity;
 
-	public PlayerAgentBody(Agent parent, World world, Vector2 position, Vector2 velocity) {
-		super(parent, world);
+	public PlayerAgentBody(Agent parent, PhysicsHooks physHooks, Vector2 position, Vector2 velocity) {
+		super(parent, physHooks);
 		prevPosition = position.cpy();
 		prevVelocity = velocity.cpy();
 	}

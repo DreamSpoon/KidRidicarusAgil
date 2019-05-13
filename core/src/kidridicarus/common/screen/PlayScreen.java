@@ -165,7 +165,7 @@ public class PlayScreen implements Screen {
 
 		// DEBUG: draw outlines of Box2D fixtures
 		if(QQ.isOn())
-			b2dr.render(game.agency.hookGetWorld(), camera.combined);
+			b2dr.render(game.agency.externalGetWorld(), camera.combined);
 
 		// change to next level?
 		if(guide.isGameWon()) {

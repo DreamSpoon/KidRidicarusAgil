@@ -4,8 +4,8 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.agency.agentscript.ScriptedBodyState;
@@ -49,9 +49,9 @@ class PitBody extends PlayerAgentBody {
 	private Fixture agentSensorFixture;
 	private boolean isDuckingForm;
 
-	PitBody(Pit parent, World world, Vector2 position, Vector2 velocity, boolean isDuckingForm,
+	PitBody(Pit parent, PhysicsHooks physHooks, Vector2 position, Vector2 velocity, boolean isDuckingForm,
 			SolidContactSensor solidSensor, AgentContactHoldSensor agentSensor) {
-		super(parent, world, position, velocity);
+		super(parent, physHooks, position, velocity);
 		this.solidSensor = solidSensor;
 		this.agentSensor = agentSensor;
 		this.isDuckingForm = isDuckingForm;
@@ -62,13 +62,13 @@ class PitBody extends PlayerAgentBody {
 	private void defineBody(Rectangle bounds, Vector2 velocity) {
 		// dispose the old body if it exists
 		if(b2body != null)
-			world.destroyBody(b2body);
+			physHooks.destroyBody(b2body);
 
 		if(isDuckingForm)
 			setBoundsSize(DUCKING_BODY_WIDTH, DUCKING_BODY_HEIGHT);
 		else
 			setBoundsSize(STAND_BODY_WIDTH, STAND_BODY_HEIGHT);
-		b2body = B2DFactory.makeDynamicBody(world, bounds.getCenter(new Vector2()), velocity);
+		b2body = B2DFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()), velocity);
 		b2body.setGravityScale(GRAVITY_SCALE);
 		createFixtures();
 		resetPrevValues();

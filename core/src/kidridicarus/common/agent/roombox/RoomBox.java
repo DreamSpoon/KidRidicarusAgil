@@ -30,7 +30,7 @@ public class RoomBox extends CorpusAgent {
 
 	public RoomBox(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
-		body = new RoomBoxBody(this, agentHooks.getWorld(), AP_Tool.getBounds(properties));
+		body = new RoomBoxBody(this, agentHooks.physHooks, AP_Tool.getBounds(properties));
 		roomType = RoomType.CENTER;
 		String roomTypeStr = properties.getString(CommonKV.Room.KEY_TYPE, "");
 		if(roomTypeStr.equals(CommonKV.Room.VAL_TYPE_SCROLL_X))

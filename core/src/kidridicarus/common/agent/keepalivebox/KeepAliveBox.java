@@ -13,7 +13,7 @@ import kidridicarus.common.tool.AP_Tool;
 public class KeepAliveBox extends FollowBox {
 	public KeepAliveBox(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
-		body = new KeepAliveBoxBody(this, agentHooks.getWorld(), AP_Tool.getBounds(properties));
+		body = new KeepAliveBoxBody(this, agentHooks.physHooks, AP_Tool.getBounds(properties));
 	}
 
 	public static ObjectProperties makeAP(Vector2 position, float width, float height) {

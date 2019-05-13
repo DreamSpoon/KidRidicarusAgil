@@ -24,7 +24,7 @@ public class AgentSpawner extends CorpusAgent implements EnableTakeAgent {
 					"Cannot create AgentSpawner with non-valid agent class alias =" + spawnAgentClassAlias);
 		}
 		isEnabled = false;
-		body = new AgentSpawnerBody(this, agentHooks.getWorld(), AP_Tool.getBounds(properties));
+		body = new AgentSpawnerBody(this, agentHooks.physHooks, AP_Tool.getBounds(properties));
 		// create controller for the desired type of spawning
 		String spawnerType = properties.getString(CommonKV.Spawn.KEY_SPAWNER_TYPE, "");
 		if(spawnerType.equals(CommonKV.Spawn.VAL_SPAWNER_TYPE_MULTI))

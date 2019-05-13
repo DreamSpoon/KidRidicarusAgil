@@ -1,8 +1,8 @@
 package kidridicarus.common.agent.scrollkillbox;
 
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.agent.followbox.FollowBox;
 import kidridicarus.common.agent.followbox.FollowBoxBody;
@@ -12,8 +12,8 @@ class ScrollKillBoxBody extends FollowBoxBody {
 	private static final CFBitSeq CFCAT_BITS = new CFBitSeq(CommonCF.Alias.SCROLL_KILL_BIT);
 	private static final CFBitSeq CFMASK_BITS = new CFBitSeq(CommonCF.Alias.AGENT_BIT);
 
-	ScrollKillBoxBody(FollowBox parent, World world, Rectangle bounds) {
-		super(parent, world, bounds, false);
+	ScrollKillBoxBody(FollowBox parent, PhysicsHooks physHooks, Rectangle bounds) {
+		super(parent, physHooks, bounds, false);
 	}
 
 	@Override

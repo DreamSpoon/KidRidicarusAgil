@@ -12,7 +12,7 @@ import kidridicarus.common.tool.Direction4;
 public class PlayerSpawner extends CorpusAgent {
 	public PlayerSpawner(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
-		body = new PlayerSpawnerBody(agentHooks.getWorld(), this, AP_Tool.getBounds(properties));
+		body = new PlayerSpawnerBody(agentHooks.physHooks, this, AP_Tool.getBounds(properties));
 		agentHooks.createAgentRemoveListener(this, new AgentRemoveCallback() {
 				@Override
 				public void preRemoveAgent() { dispose(); }

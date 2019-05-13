@@ -9,7 +9,7 @@ import kidridicarus.common.tool.AP_Tool;
 public class DespawnBox extends CorpusAgent {
 	public DespawnBox(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
-		body = new DespawnBoxBody(this, agentHooks.getWorld(), AP_Tool.getBounds(properties));
+		body = new DespawnBoxBody(this, agentHooks.physHooks, AP_Tool.getBounds(properties));
 		agentHooks.createAgentRemoveListener(this, new AgentRemoveCallback() {
 			@Override
 			public void preRemoveAgent() { dispose(); }

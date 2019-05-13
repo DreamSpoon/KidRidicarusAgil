@@ -1,8 +1,8 @@
 package kidridicarus.game.KidIcarus.agent.player.pitarrow;
 
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.agentsensor.AgentContactHoldSensor;
@@ -22,9 +22,9 @@ class PitArrowBody extends AgentBody {
 	private static final CFBitSeq AS_CFMASK = new CFBitSeq(CommonCF.Alias.AGENT_BIT, CommonCF.Alias.KEEP_ALIVE_BIT,
 			CommonCF.Alias.DESPAWN_BIT, CommonCF.Alias.ROOM_BIT);
 
-	PitArrowBody(PitArrow parent, World world, Vector2 position, Vector2 velocity, Direction4 arrowDir,
+	PitArrowBody(PitArrow parent, PhysicsHooks physHooks, Vector2 position, Vector2 velocity, Direction4 arrowDir,
 			SolidContactSensor solidSensor, AgentContactHoldSensor agentSensor) {
-		super(parent, world);
+		super(parent, physHooks);
 
 		// set body size info and create new body
 		if(arrowDir.isHorizontal())
@@ -32,7 +32,7 @@ class PitArrowBody extends AgentBody {
 		// if vertical then rotate body size by 90 degrees
 		else
 			setBoundsSize(BODY_HEIGHT, BODY_WIDTH);
-		b2body = B2DFactory.makeDynamicBody(world, position, velocity);
+		b2body = B2DFactory.makeDynamicBody(physHooks, position, velocity);
 		b2body.setGravityScale(GRAVITY_SCALE);
 		b2body.setBullet(true);
 		// create main fixture

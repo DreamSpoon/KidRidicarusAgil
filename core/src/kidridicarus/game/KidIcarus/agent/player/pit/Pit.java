@@ -49,7 +49,7 @@ public class Pit extends PlayerAgent implements PowerupTakeAgent, ContactDmgTake
 	public Pit(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
 		spine = new PitSpine(this);
-		body = new PitBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties),
+		body = new PitBody(this, agentHooks.physHooks, AP_Tool.getCenter(properties),
 				AP_Tool.safeGetVelocity(properties), false, spine.createSolidContactSensor(),
 				spine.createAgentSensor());
 		spine.setBody(body);

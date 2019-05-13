@@ -2,9 +2,9 @@ package kidridicarus.common.agent.scrollbox;
 
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 
 import kidridicarus.agency.Agency.AgentHooks;
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agent.AgentRemoveCallback;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.agent.followbox.FollowBox;
@@ -19,7 +19,7 @@ public abstract class ScrollBox extends FollowBox {
 	private static final float LONG_DIM = UInfo.P2M(32f);
 	private static final float OFFSET = UInfo.P2M(10f);
 
-	public abstract FollowBoxBody createScrollBoxBody(ScrollBox parent, World world, Rectangle bounds);
+	public abstract FollowBoxBody createScrollBoxBody(ScrollBox parent, PhysicsHooks physHooks, Rectangle bounds);
 
 	private Direction4 scrollDir;
 
@@ -44,7 +44,7 @@ public abstract class ScrollBox extends FollowBox {
 				throw new IllegalStateException("Cannot create scroll push box with scrollDir = " + scrollDir);
 		}
 		Vector2 pos = AP_Tool.getCenter(properties);
-		body = createScrollBoxBody(this, agentHooks.getWorld(), new Rectangle(pos.x, pos.y, width, height));
+		body = createScrollBoxBody(this, agentHooks.physHooks, new Rectangle(pos.x, pos.y, width, height));
 		agentHooks.createAgentRemoveListener(this, new AgentRemoveCallback() {
 				@Override
 				public void preRemoveAgent() { dispose(); }

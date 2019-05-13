@@ -4,40 +4,39 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
-
-import kidridicarus.agency.agentbody.AgentBodyFilter;
-import kidridicarus.agency.agentbody.CFBitSeq;
-
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
-import com.badlogic.gdx.physics.box2d.World;
+
+import kidridicarus.agency.Agency.PhysicsHooks;
+import kidridicarus.agency.agentbody.AgentBodyFilter;
+import kidridicarus.agency.agentbody.CFBitSeq;
 
 /*
  * Convenience class for Box2D body/fixture creation.
  */
 public class B2DFactory {
-	public static Body makeDynamicBody(World world, Vector2 position) {
+	public static Body makeDynamicBody(PhysicsHooks physHooks, Vector2 position) {
 		BodyDef bdef = new BodyDef();
 		bdef.type = BodyType.DynamicBody;
 		bdef.position.set(position);
-		return world.createBody(bdef);
+		return physHooks.createBody(bdef);
 	}
 
-	public static Body makeDynamicBody(World world, Vector2 position, Vector2 velocity) {
+	public static Body makeDynamicBody(PhysicsHooks physHooks, Vector2 position, Vector2 velocity) {
 		BodyDef bdef = new BodyDef();
 		bdef.type = BodyType.DynamicBody;
 		bdef.position.set(position);
 		if(velocity != null)
 			bdef.linearVelocity.set(velocity);
-		return world.createBody(bdef);
+		return physHooks.createBody(bdef);
 	}
 
-	public static Body makeStaticBody(World world, Vector2 position) {
+	public static Body makeStaticBody(PhysicsHooks physHooks, Vector2 position) {
 		BodyDef bdef = new BodyDef();
 		bdef.type = BodyType.StaticBody;
 		bdef.position.set(position);
-		return world.createBody(bdef);
+		return physHooks.createBody(bdef);
 	}
 
 	private static Fixture makeBoxFixture(Body b2body, FixtureDef fdef, AgentBodyFilter abFilter,

@@ -8,9 +8,9 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.EdgeShape;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Disposable;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.info.CommonCF;
@@ -37,7 +37,7 @@ import kidridicarus.common.tool.B2DFactory;
  *     bound lines are just a representation of the tiles, ergo the bound lines are Trees.
  */
 public class SolidTiledMap implements Disposable {
-	private World world;
+	private PhysicsHooks physHooks;
 	private BooleanTiledMap bTileMap;
 	private int tileWidthInPixels;
 	private int tileHeightInPixels;
@@ -46,8 +46,8 @@ public class SolidTiledMap implements Disposable {
 	private SolidLineSegList[] hLines;
 	private SolidLineSegList[] vLines;
 
-	public SolidTiledMap(World world, List<TiledMapTileLayer> solidLayers) {
-		this.world = world;
+	public SolidTiledMap(PhysicsHooks physHooks, List<TiledMapTileLayer> solidLayers) {
+		this.physHooks = physHooks;
 
 		bTileMap = new BooleanTiledMap(solidLayers);
 		// use the first layer's reference to get some info about the number of tiles wide and high
@@ -244,7 +244,7 @@ public class SolidTiledMap implements Disposable {
 	private Body defineLineBody(int startX, int startY, int endX, int endY, SolidLineSeg seg) {
 		FixtureDef fdef;
 		EdgeShape edgeShape;
-		Body body = B2DFactory.makeStaticBody(world, UInfo.VectorP2M(startX * tileWidthInPixels,
+		Body body = B2DFactory.makeStaticBody(physHooks, UInfo.VectorP2M(startX * tileWidthInPixels,
 				startY * tileHeightInPixels));
 
 		edgeShape = new EdgeShape();
@@ -369,14 +369,14 @@ public class SolidTiledMap implements Disposable {
 		if(higherSeg != null && higherSeg.begin == x+1 && higherSeg.upNormal == upNormal) {
 			newSeg.end = higherSeg.end;
 			// destroy old right segment
-			world.destroyBody(higherSeg.body);
+			physHooks.destroyBody(higherSeg.body);
 			horvLines[y].remove(higherSeg);
 		}
 		// if adjacency on left, and the upNormal of the left seg matches the new seg, then join with left seg
 		if(floorSeg != null && floorSeg.end == x-1 && floorSeg.upNormal == upNormal) {
 			newSeg.begin = floorSeg.begin;
 			// destroy old left segment
-			world.destroyBody(floorSeg.body);
+			physHooks.destroyBody(floorSeg.body);
 			horvLines[y].remove(floorSeg);
 		}
 
@@ -415,7 +415,7 @@ public class SolidTiledMap implements Disposable {
 			throw new IllegalStateException("Cannot remove line segment (or portion thereof) that does not exist.");
 
 		// destroy the original lineSeg, and new segments might be created later
-		world.destroyBody(floorSeg.body);
+		physHooks.destroyBody(floorSeg.body);
 		horvLines[y].remove(floorSeg);
 
 		leftBegin = floorSeg.begin;

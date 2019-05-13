@@ -8,7 +8,11 @@ import java.util.List;
 
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.Joint;
 import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.joints.MouseJointDef;
 import com.badlogic.gdx.utils.Disposable;
 
 import kidridicarus.agency.agencychange.AgencyChangeQueue;
@@ -78,7 +82,8 @@ public class Agency implements Disposable {
 	private Eye myEye;
 	// how much time has passed (via updates) since this Agency was constructed?
 	private float globalTimer;
-	private World world;
+	private World panWorld;
+	private PhysicsHooks panPhysHooks;
 
 	public Agency(AgentClassList allAgentsClassList, TextureAtlas atlas) {
 		this.allAgentsClassList = allAgentsClassList;
@@ -89,13 +94,14 @@ public class Agency implements Disposable {
 		earplug = new EarPlug();
 		myEye = null;
 
-		world = new World(new Vector2(0, -10f), true);
-		world.setContactListener(new AgentContactListener());
-		world.setContactFilter(new AgentContactFilter());
+		panWorld = new World(new Vector2(0, -10f), true);
+		panWorld.setContactListener(new AgentContactListener());
+		panWorld.setContactFilter(new AgentContactFilter());
+		panPhysHooks = new PhysicsHooks(panWorld);
 	}
 
 	public void update(final float timeDelta) {
-		world.step(timeDelta, 6, 2);
+		panWorld.step(timeDelta, 6, 2);
 		globalTimer += timeDelta;
 
 		// loop through list of agents receiving updates, calling each agent's update method
@@ -214,7 +220,7 @@ public class Agency implements Disposable {
 		// bodies created by Agent when Agent is disposed. Only an AgentPlaceholder is needed for this purpose,
 		// since the hooks will only need an Agent ref when Agency enters the changeQ processing phase, which occurs
 		// after all Agent constructors are finished processing.
-		AgentHooks newInternalHooks = new AgentHooks(agentPlaceholder);
+		AgentHooks newInternalHooks = new AgentHooks(agentPlaceholder, panPhysHooks);
 		try {
 			Constructor<?> constructor =
 					agentClass.getConstructor(new Class[] { AgentHooks.class, ObjectProperties.class });
@@ -277,8 +283,8 @@ public class Agency implements Disposable {
 		return aList.getFirst();
 	}
 
-	public World hookGetWorld() {
-		return world;
+	public World externalGetWorld() {
+		return panWorld;
 	}
 
 	// remove all Agents from Agency, but do not dispose Agency
@@ -293,7 +299,7 @@ public class Agency implements Disposable {
 	@Override
 	public void dispose() {
 		removeAllAgents();
-		world.dispose();
+		panWorld.dispose();
 	}
 
 	/*
@@ -304,9 +310,11 @@ public class Agency implements Disposable {
 	 */
 	public class AgentHooks {
 		private AgentPlaceholder ap;
+		public final PhysicsHooks physHooks;
 
-		private AgentHooks(AgentPlaceholder ap) {
+		private AgentHooks(AgentPlaceholder ap, PhysicsHooks physHooks) {
 			this.ap = ap;
+			this.physHooks = physHooks;
 		}
 
 		public Agent createAgent(ObjectProperties properties) {
@@ -381,10 +389,6 @@ public class Agency implements Disposable {
 			return allAgentsClassList.get(strClassAlias) != null;
 		}
 
-		public World getWorld() {
-			return world;
-		}
-
 		public TextureAtlas getAtlas() {
 			return atlas;
 		}
@@ -395,6 +399,26 @@ public class Agency implements Disposable {
 
 		public Eye getEye() {
 			return myEye;
+		}
+	}
+
+	public class PhysicsHooks {
+		private World physHooksWorld;
+
+		public PhysicsHooks(World physHooksWorld) {
+			this.physHooksWorld = physHooksWorld;
+		}
+
+		public Body createBody(BodyDef bdef) {
+			return physHooksWorld.createBody(bdef);
+		}
+
+		public void destroyBody(Body body) {
+			physHooksWorld.destroyBody(body);
+		}
+
+		public Joint createJoint(MouseJointDef mjdef) {
+			return physHooksWorld.createJoint(mjdef);
 		}
 	}
 }

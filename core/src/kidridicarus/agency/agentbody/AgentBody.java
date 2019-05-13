@@ -4,9 +4,9 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Fixture;
-import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Disposable;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.Agent;
 import kidridicarus.common.info.CommonCF;
 
@@ -22,16 +22,16 @@ import kidridicarus.common.info.CommonCF;
  *   -caller should explicitly invoke the create/destroy methods when manually modifying the position of AgentBody
  *   -remove the defineBody/dispose paradigm, replace with the above described create/destroy method paradigm
  */
-public abstract class AgentBody implements Disposable {
+public class AgentBody implements Disposable {
 	protected final Agent parent;
-	protected final World world;
+	protected final PhysicsHooks physHooks;
 	protected Body b2body;
 	// bounds size is for information purposes only, it is not necessarily the current dimensions of b2body
 	private Vector2 boundsSize;
 
-	public AgentBody(Agent parent, World world) {
+	public AgentBody(Agent parent, PhysicsHooks physHooks) {
 		this.parent = parent;
-		this.world = world;
+		this.physHooks = physHooks;
 		b2body = null;
 		boundsSize = new Vector2(0f, 0f);
 	}

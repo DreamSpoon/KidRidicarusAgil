@@ -2,8 +2,8 @@ package kidridicarus.game.KidIcarus.agent.other.kidicarusdoor;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Fixture;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.CFBitSeq;
@@ -29,14 +29,14 @@ class KidIcarusDoorBody extends AgentBody {
 	private AgentContactHoldSensor agentSensor;
 	private Fixture mainBodyFixture;
 
-	KidIcarusDoorBody(KidIcarusDoor parent, World world, Vector2 position, boolean isOpened,
+	KidIcarusDoorBody(KidIcarusDoor parent, PhysicsHooks physHooks, Vector2 position, boolean isOpened,
 			AgentContactHoldSensor agentSensor) {
-		super(parent, world);
+		super(parent, physHooks);
 		this.agentSensor = agentSensor;
 
 		// set body size and create new body
 		setBoundsSize(BODY_WIDTH, BODY_HEIGHT);
-		b2body = B2DFactory.makeStaticBody(world, position.cpy().add(BODY_OFFSET));
+		b2body = B2DFactory.makeStaticBody(physHooks, position.cpy().add(BODY_OFFSET));
 		// create the agent sensor, it will be used now and/or later
 		mainBodyFixture = B2DFactory.makeBoxFixture(b2body, isOpened ? OPENED_CFCAT : CLOSED_CFCAT,
 				isOpened ? OPENED_CFMASK : CLOSED_CFMASK, agentSensor, getBounds().width, getBounds().height);

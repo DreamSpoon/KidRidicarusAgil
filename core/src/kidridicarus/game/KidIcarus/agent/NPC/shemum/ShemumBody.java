@@ -1,8 +1,8 @@
 package kidridicarus.game.KidIcarus.agent.NPC.shemum;
 
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.agentsensor.AgentContactHoldSensor;
@@ -25,12 +25,12 @@ class ShemumBody extends AgentBody {
 	private static final CFBitSeq AS_CFMASK = new CFBitSeq(CommonCF.Alias.AGENT_BIT,
 			CommonCF.Alias.DESPAWN_BIT, CommonCF.Alias.KEEP_ALIVE_BIT, CommonCF.Alias.ROOM_BIT);
 
-	ShemumBody(Shemum parent, World world, Vector2 position, Vector2 velocity, SolidContactSensor solidSensor,
+	ShemumBody(Shemum parent, PhysicsHooks physHooks, Vector2 position, Vector2 velocity, SolidContactSensor solidSensor,
 			AgentContactHoldSensor agentSensor, AgentContactHoldSensor playerSensor) {
-		super(parent, world);
+		super(parent, physHooks);
 		// set body size info and create new body
 		setBoundsSize(BODY_WIDTH, BODY_HEIGHT);
-		b2body = B2DFactory.makeDynamicBody(world, position, velocity);
+		b2body = B2DFactory.makeDynamicBody(physHooks, position, velocity);
 		// main body fixture
 		B2DFactory.makeBoxFixture(b2body, MAIN_CFCAT, MAIN_CFMASK, solidSensor, getBounds().width,
 				getBounds().height);

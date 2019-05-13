@@ -18,7 +18,7 @@ public class LevelEndTrigger extends CorpusAgent implements TriggerTakeAgent{
 
 	public LevelEndTrigger(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
-		body = new LevelEndTriggerBody(this, agentHooks.getWorld(), AP_Tool.getBounds(properties));
+		body = new LevelEndTriggerBody(this, agentHooks.physHooks, AP_Tool.getBounds(properties));
 		nextLevelFilename = properties.getString(CommonKV.Level.VAL_NEXTLEVEL_FILENAME, "");
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 			@Override

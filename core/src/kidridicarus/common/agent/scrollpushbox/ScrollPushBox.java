@@ -2,9 +2,9 @@ package kidridicarus.common.agent.scrollpushbox;
 
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 
 import kidridicarus.agency.Agency.AgentHooks;
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.agent.followbox.FollowBoxBody;
 import kidridicarus.common.agent.scrollbox.ScrollBox;
@@ -19,8 +19,8 @@ public class ScrollPushBox extends ScrollBox {
 	}
 
 	@Override
-	public FollowBoxBody createScrollBoxBody(ScrollBox parent, World world, Rectangle bounds) {
-		return new ScrollPushBoxBody(parent, world, bounds);
+	public FollowBoxBody createScrollBoxBody(ScrollBox parent, PhysicsHooks physHooks, Rectangle bounds) {
+		return new ScrollPushBoxBody(parent, physHooks, bounds);
 	}
 
 	public static ObjectProperties makeAP(Vector2 position, Direction4 scrollDir) {

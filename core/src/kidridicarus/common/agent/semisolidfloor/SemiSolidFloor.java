@@ -19,7 +19,7 @@ public class SemiSolidFloor extends CorpusAgent implements SolidAgent {
 		// ensure the floor bounds height = zero (essentially, creating a line at top of bounds)
 		bounds.y = bounds.y + bounds.height;
 		bounds.height = 0f;
-		body = new SemiSolidFloorBody(this, agentHooks.getWorld(), bounds);
+		body = new SemiSolidFloorBody(this, agentHooks.physHooks, bounds);
 		agentHooks.createAgentRemoveListener(this, new AgentRemoveCallback() {
 			@Override
 			public void preRemoveAgent() { dispose(); }

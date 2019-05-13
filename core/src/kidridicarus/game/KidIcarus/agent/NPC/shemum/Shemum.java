@@ -23,7 +23,7 @@ public class Shemum extends CorpusAgent implements ContactDmgTakeAgent {
 	public Shemum(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
 		spine = new ShemumSpine(this);
-		body = new ShemumBody(this, agentHooks.getWorld(), AP_Tool.getCenter(properties), AP_Tool.safeGetVelocity(properties),
+		body = new ShemumBody(this, agentHooks.physHooks, AP_Tool.getCenter(properties), AP_Tool.safeGetVelocity(properties),
 				spine.createSolidContactSensor(), spine.createAgentSensor(), spine.createPlayerSensor());
 		spine.setBody(body);
 		brain = new ShemumBrain(this, agentHooks, spine);

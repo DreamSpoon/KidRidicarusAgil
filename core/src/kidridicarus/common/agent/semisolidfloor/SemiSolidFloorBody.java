@@ -2,8 +2,8 @@ package kidridicarus.common.agent.semisolidfloor;
 
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.World;
 
+import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.Agent;
 import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.agentbody.AgentBodyFilter;
@@ -16,11 +16,11 @@ class SemiSolidFloorBody extends AgentBody {
 			CommonCF.Alias.SEMISOLID_FLOOR_FOOT_BIT);
 	private static final CFBitSeq CFMASK_BITS = new CFBitSeq(true);
 
-	SemiSolidFloorBody(Agent parent, World world, Rectangle bounds) {
-		super(parent, world);
+	SemiSolidFloorBody(Agent parent, PhysicsHooks physHooks, Rectangle bounds) {
+		super(parent, physHooks);
 		// set body size info and create new body
 		setBoundsSize(bounds.width, bounds.height);
-		b2body = B2DFactory.makeStaticBody(world, bounds.getCenter(new Vector2()));
+		b2body = B2DFactory.makeStaticBody(physHooks, bounds.getCenter(new Vector2()));
 		AgentBodyFilter abf = new AgentBodyFilter(CFCAT_BITS, CFMASK_BITS, this);
 		abf.preSolver = new SemiSolidPreSolver(abf);
 		B2DFactory.makeBoxFixture(b2body, abf, getBounds().width, getBounds().height);

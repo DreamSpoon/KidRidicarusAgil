@@ -17,7 +17,7 @@ import kidridicarus.common.tool.AP_Tool;
 public class AgentSpawnTrigger extends FollowBox {
 	public AgentSpawnTrigger(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
-		body = new AgentSpawnTriggerBody(this, agentHooks.getWorld(), AP_Tool.getBounds(properties));
+		body = new AgentSpawnTriggerBody(this, agentHooks.physHooks, AP_Tool.getBounds(properties));
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) {
