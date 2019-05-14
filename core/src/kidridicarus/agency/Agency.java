@@ -15,9 +15,6 @@ import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.physics.box2d.joints.MouseJointDef;
 import com.badlogic.gdx.utils.Disposable;
 
-import kidridicarus.agency.agencychange.AgencyChangeQueue;
-import kidridicarus.agency.agencychange.AgencyChangeQueue.AgencyChange;
-import kidridicarus.agency.agencychange.AgencyChangeQueue.AgencyChangeCallback;
 import kidridicarus.agency.agencychange.AgentPlaceholder;
 import kidridicarus.agency.agent.AgentDrawListener;
 import kidridicarus.agency.agent.AgentPropertyListener;
@@ -74,8 +71,7 @@ import kidridicarus.common.tool.QQ;
  */
 public class Agency implements Disposable {
 	private AgentClassList allAgentsClassList;
-	private TextureAtlas atlas;
-	private AgencyChangeQueue agencyChangeQ;
+	private TextureAtlas panAtlas;
 	private AgencyIndex agencyIndex;
 	// Agency needs an earplug because it looks cool... and lets Agents exchange audio info
 	private EarPlug earplug;
@@ -87,8 +83,7 @@ public class Agency implements Disposable {
 
 	public Agency(AgentClassList allAgentsClassList, TextureAtlas atlas) {
 		this.allAgentsClassList = allAgentsClassList;
-		this.atlas = atlas;
-		agencyChangeQ = new AgencyChangeQueue();
+		this.panAtlas = atlas;
 		agencyIndex = new AgencyIndex();
 		globalTimer = 0f;
 		earplug = new EarPlug();
@@ -115,69 +110,7 @@ public class Agency implements Disposable {
 				}
 			});
 		// apply changes
-		agencyChangeQ.process(new AgencyChangeCallback() {
-			@Override
-			public void change(AgencyChange change) {
-				switch(change.changeType) {
-					case AGENT_LIST:
-						doAgentListChange(change);
-						break;
-					case UPDATE_LISTENER:
-						doUpdateListenerChange(change);
-						break;
-					case DRAW_LISTENER:
-						doDrawListenerChange(change);
-						break;
-					case REMOVE_LISTENER:
-						doAgentRemoveListenerChange(change);
-						break;
-					case PROPERTY_LISTENER:
-						doAgentPropertyListenerChange(change);
-						break;
-				}
-			}
-		});
-	}
-
-	private void doAgentListChange(AgencyChange change) {
-		if(change.isAdd)
-			agencyIndex.addAgent(change.ap.agent);
-		else
-			agencyIndex.removeAgent(change.ap.agent);
-	}
-
-	private void doUpdateListenerChange(AgencyChange change) {
-		if(change.isAdd) {
-			agencyIndex.addUpdateListener(change.ap.agent, (AgentUpdateListener) change.otherData1,
-					(AllowOrder) change.otherData2);
-		}
-		else
-			agencyIndex.removeUpdateListener(change.ap.agent, (AgentUpdateListener) change.otherData1);
-	}
-
-	private void doDrawListenerChange(AgencyChange change) {
-		if(change.isAdd) {
-			agencyIndex.addDrawListener(change.ap.agent, (AgentDrawListener) change.otherData1,
-					(AllowOrder) change.otherData2);
-		}
-		else
-			agencyIndex.removeDrawListener(change.ap.agent, (AgentDrawListener) change.otherData1);
-	}
-
-	private void doAgentRemoveListenerChange(AgencyChange change) {
-		if(change.isAdd)
-			agencyIndex.addAgentRemoveListener(change.ap.agent, (AgentRemoveListener) change.otherData1);
-		else
-			agencyIndex.removeAgentRemoveListener(change.ap.agent, (AgentRemoveListener) change.otherData1);
-	}
-
-	private void doAgentPropertyListenerChange(AgencyChange change) {
-		if(change.isAdd) {
-			agencyIndex.addAgentPropertyListener(change.ap.agent, (AgentPropertyListener<?>) change.otherData1,
-					(String) change.otherData2, (Boolean) change.otherData3);
-		}
-		else
-			agencyIndex.removeAgentPropertyListener(change.ap.agent, (String) change.otherData2);
+		agencyIndex.processQueue();
 	}
 
 	/*
@@ -215,12 +148,12 @@ public class Agency implements Disposable {
 		// placeholder after the Agent constructor code is finished executing. All changes tied to the placeholder will
 		// not be executed until the change queue is processed.
 		AgentPlaceholder agentPlaceholder = new AgentPlaceholder(null);
-		agencyChangeQ.addAgent(agentPlaceholder);
+		agencyIndex.queueAddAgent(agentPlaceholder);
 		// Agency hooks are unique to each Agent, for disposal coordination. e.g. Automatically disposing all
 		// bodies created by Agent when Agent is disposed. Only an AgentPlaceholder is needed for this purpose,
 		// since the hooks will only need an Agent ref when Agency enters the changeQ processing phase, which occurs
 		// after all Agent constructors are finished processing.
-		AgentHooks newInternalHooks = new AgentHooks(agentPlaceholder, panPhysHooks);
+		AgentHooks newInternalHooks = new AgentHooks(agentPlaceholder, panPhysHooks, panAtlas);
 		try {
 			Constructor<?> constructor =
 					agentClass.getConstructor(new Class[] { AgentHooks.class, ObjectProperties.class });
@@ -309,12 +242,14 @@ public class Agency implements Disposable {
 	 * Side-Note: See class AgentScriptHooks.
 	 */
 	public class AgentHooks {
-		private AgentPlaceholder ap;
+		private AgentPlaceholder ownerAP;
 		public final PhysicsHooks physHooks;
+		public final TextureAtlas atlas;
 
-		private AgentHooks(AgentPlaceholder ap, PhysicsHooks physHooks) {
-			this.ap = ap;
+		private AgentHooks(AgentPlaceholder ownerAP, PhysicsHooks physHooks, TextureAtlas atlas) {
+			this.ownerAP = ownerAP;
 			this.physHooks = physHooks;
+			this.atlas = atlas;
 		}
 
 		public Agent createAgent(ObjectProperties properties) {
@@ -327,35 +262,35 @@ public class Agency implements Disposable {
 
 		// Agent can only remove itself, if a sub-Agent needs removal then the sub-Agent must remove itself
 		public void removeThisAgent() {
-			agencyChangeQ.removeAgent(ap);
+			agencyIndex.queueRemoveAgent(ownerAP);
 		}
 
 		public void addPropertyListener(boolean isGlobal, String propertyKey,
 				AgentPropertyListener<?> propertyListener) {
 			// method order of arguments differs from the changeQ method, for inline listener creation convenience
-			agencyChangeQ.addAgentPropertyListener(ap, propertyListener, propertyKey, isGlobal);
+			agencyIndex.queueAddPropertyListener(ownerAP, propertyListener, propertyKey, isGlobal);
 		}
 
 		public void removePropertyListener(String propertyKey) {
-			agencyChangeQ.removeAgentPropertyListener(ap, propertyKey);
+			agencyIndex.queueRemovePropertyListener(ownerAP, propertyKey);
 		}
 
 		public void addUpdateListener(AllowOrder updateOrder, AgentUpdateListener updateListener) {
 			// method order of arguments differs from the changeQ method, for inline listener creation convenience
-			agencyChangeQ.addAgentUpdateListener(ap, updateListener, updateOrder);
+			agencyIndex.queueAddUpdateListener(ownerAP, updateListener, updateOrder);
 		}
 
 		public void removeUpdateListener(AgentUpdateListener updateListener) {
-			agencyChangeQ.removeAgentUpdateListener(ap, updateListener);
+			agencyIndex.queueRemoveUpdateListener(ownerAP, updateListener);
 		}
 
 		public void addDrawListener(AllowOrder drawOrder, AgentDrawListener drawListener) {
 			// method order of arguments differs from the changeQ method, for inline listener creation convenience
-			agencyChangeQ.addAgentDrawListener(ap, drawListener, drawOrder);
+			agencyIndex.queueAddDrawListener(ownerAP, drawListener, drawOrder);
 		}
 
 		public void removeDrawListener(AgentDrawListener drawListener) {
-			agencyChangeQ.removeAgentDrawListener(ap, drawListener);
+			agencyIndex.queueRemoveDrawListener(ownerAP, drawListener);
 		}
 
 		/*
@@ -368,13 +303,13 @@ public class Agency implements Disposable {
 		 * based on ( listeningAgent, otherAgent, callback ).
 		 */
 		public AgentRemoveListener createAgentRemoveListener(Agent otherAgent, AgentRemoveCallback callback) {
-			AgentRemoveListener removeListener = new AgentRemoveListener(ap, otherAgent, callback);
-			agencyChangeQ.addAgentRemoveListener(ap, removeListener);
+			AgentRemoveListener removeListener = new AgentRemoveListener(ownerAP, otherAgent, callback);
+			agencyIndex.queueAddAgentRemoveListener(ownerAP, removeListener);
 			return removeListener;
 		}
 
 		public void removeAgentRemoveListener(AgentRemoveListener removeListener) {
-			agencyChangeQ.removeAgentRemoveListener(ap, removeListener);
+			agencyIndex.queueRemoveAgentRemoveListener(ownerAP, removeListener);
 		}
 
 		public Agent getFirstAgentByProperty(String key, Object val) {
@@ -387,10 +322,6 @@ public class Agency implements Disposable {
 
 		public boolean isValidAgentClassAlias(String strClassAlias) {
 			return allAgentsClassList.get(strClassAlias) != null;
-		}
-
-		public TextureAtlas getAtlas() {
-			return atlas;
 		}
 
 		public Ear getEar() {

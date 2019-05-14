@@ -5,7 +5,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
+import java.util.concurrent.LinkedBlockingQueue;
 
+import kidridicarus.agency.agencychange.AgentPlaceholder;
 import kidridicarus.agency.agent.AgentDrawListener;
 import kidridicarus.agency.agent.AgentPropertyListener;
 import kidridicarus.agency.agent.AgentRemoveListener;
@@ -16,13 +18,13 @@ import kidridicarus.agency.tool.AllowOrderList.AllowOrderListIter;
 
 /*
  * A list of all Agents in the Agency, and their associated update listeners and draw listeners. Agents can have
- * remove listeners via their AgentWrapper, which receive callback when the Agent is removed from Agency.
- *
- * TODO Agent property listeners should be local by default (Agents create their own property listeners), and can
- * elevate a property to global status so the Agent can be searched by the elevated property (the property string
- * is elevated, not the listener).
+ * remove listeners, which receive callback when the Agent is removed from Agency.
  */
 class AgencyIndex {
+	private interface AgencyChange { public void applyChange(); }
+
+	private LinkedBlockingQueue<AgencyChange> changeQ;
+
 	private HashSet<Agent> allAgents;
 	private AllowOrderList orderedUpdateListeners;
 	private HashMap<AgentUpdateListener, AllowOrder> allUpdateListeners;
@@ -38,13 +40,19 @@ class AgencyIndex {
 		orderedDrawListeners = new AllowOrderList();
 		allDrawListeners = new HashMap<AgentDrawListener, AllowOrder>();
 		globalPropertyKeyAgents = new HashMap<String, LinkedList<Agent>>();
+		changeQ = new LinkedBlockingQueue<AgencyChange>();
 	}
 
-	/*
-	 * Add an Agent to the index.
-	 */
-	public void addAgent(Agent agent) {
-		allAgents.add(agent);
+	public void processQueue() {
+		while(!changeQ.isEmpty())
+			changeQ.poll().applyChange();
+	}
+
+	public void queueAddAgent(final AgentPlaceholder ap) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() { allAgents.add(ap.agent); }
+			});
 	}
 
 	/*
@@ -52,53 +60,62 @@ class AgencyIndex {
 	 * If remove listeners are present, then they must be called first to prevent altering the rest of the Agent's
 	 * state by way of removing draw, update, etc. listeners.
 	 */
-	public void removeAgent(Agent agent) {
-		// if other agents are listening for remove callback then do it, and garbage collect remove listeners
-		removeAllAgentRemoveListeners(agent);
-		// remove agent from updates list
-		removeAllUpdateListeners(agent);
-		// remove agent from draw order list
-		removeAllDrawListeners(agent);
-		// remove property listeners if necessary
-		removeAllAgentPropertyListeners(agent);
-		// remove agent from all agents list
-		allAgents.remove(agent);
+	public void queueRemoveAgent(final AgentPlaceholder ap) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					// If other Agents are listening for remove callback then do it, and garbage collect remove
+					// listeners.
+					removeAllAgentRemoveListeners(ap.agent);
+					removeAllUpdateListeners(ap.agent);
+					removeAllDrawListeners(ap.agent);
+					removeAllAgentPropertyListeners(ap.agent);
+					allAgents.remove(ap.agent);
+				}
+			});
 	}
 
-	/*
-	 * Add a single update listener and associate it with the given Agent.
-	 */
-	public void addUpdateListener(Agent agent, AgentUpdateListener updateListener, AllowOrder updateOrder) {
-		// if updates not allowed then no listener needed! I am Error
-		if(!updateOrder.allow)
-			throw new IllegalArgumentException("Cannot add update listener with updateOrder.allow==false.");
-		if(allUpdateListeners.containsKey(updateListener)) {
-			throw new IllegalArgumentException(
-					"Cannot add update listener; listener has already been added: " + updateListener);
-		}
-		// add listener to list of all update listeners
-		allUpdateListeners.put(updateListener, updateOrder);
-		orderedUpdateListeners.add(updateListener, updateOrder);
-		// add listener to agent
-		agent.updateListeners.add(updateListener);
+	// add a single update listener and associate it with the given Agent
+	public void queueAddUpdateListener(final AgentPlaceholder ap, final AgentUpdateListener updateListener,
+			final AllowOrder updateOrder) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					// if updates not allowed then no listener needed! I am Error
+					if(!updateOrder.allow)
+						throw new IllegalArgumentException("Cannot add update listener with updateOrder.allow=false.");
+					if(allUpdateListeners.containsKey(updateListener)) {
+						throw new IllegalArgumentException(
+								"Cannot add update listener; listener has already been added: " + updateListener);
+					}
+					// add listener to list of all update listeners
+					allUpdateListeners.put(updateListener, updateOrder);
+					orderedUpdateListeners.add(updateListener, updateOrder);
+					// add listener to agent
+					ap.agent.updateListeners.add(updateListener);
+				}
+			});
 	}
 
-	/*
-	 * Remove a single update listener associated with the given Agent.
-	 */
-	public void removeUpdateListener(Agent agent, AgentUpdateListener updateListener) {
-		if(!allUpdateListeners.containsKey(updateListener)) {
-			throw new IllegalArgumentException(
-					"Cannot remove update listener; listener was not added: " + updateListener);
-		}
-		// Get the current update order for the listener...
-		AllowOrder currentOrder = allUpdateListeners.get(updateListener);
-		// ... to find and remove the listener from the ordered tree/hashsets. 
-		orderedUpdateListeners.change(updateListener, currentOrder, AllowOrder.NOT_ALLOWED);
-		// remove the listener from the list of all listeners
-		allUpdateListeners.remove(updateListener);
-		// and remove the listener from the Agent's list of listeners
-		agent.updateListeners.remove(updateListener);
+	// remove a single update listener associated with the given Agent
+	public void queueRemoveUpdateListener(final AgentPlaceholder ap, final AgentUpdateListener updateListener) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					if(!allUpdateListeners.containsKey(updateListener)) {
+						throw new IllegalArgumentException(
+								"Cannot remove update listener; listener was not added: " + updateListener);
+					}
+					// Get the current update order for the listener...
+					AllowOrder currentOrder = allUpdateListeners.get(updateListener);
+					// ... to find and remove the listener from the ordered tree/hashsets.
+					orderedUpdateListeners.change(updateListener, currentOrder, AllowOrder.NOT_ALLOWED);
+					// remove the listener from the list of all listeners
+					allUpdateListeners.remove(updateListener);
+					// and remove the listener from the Agent's list of listeners
+					ap.agent.updateListeners.remove(updateListener);
+				}
+			});
 	}
 
 	/*
@@ -115,45 +132,50 @@ class AgencyIndex {
 		agent.updateListeners.clear();
 	}
 
-	/*
-	 * Add a single draw listener and associate it with the given Agent.
-	 */
-	public void addDrawListener(Agent agent, AgentDrawListener drawListener, AllowOrder drawOrder) {
-		// if draw not allowed then no listener needed! I am Error
-		if(!drawOrder.allow)
-			throw new IllegalArgumentException("Cannot add draw listener with drawOrder.allow==false.");
-		if(allDrawListeners.containsKey(drawListener)) {
-			throw new IllegalArgumentException(
-					"Cannot add draw listener; listener has already been added: " + drawListener);
-		}
-		// add listener to list of all draw listeners
-		allDrawListeners.put(drawListener, drawOrder);
-		orderedDrawListeners.add(drawListener, drawOrder);
-		// add listener to agent
-		agent.drawListeners.add(drawListener);
+	// add a single draw listener and associate it with the given Agent
+	public void queueAddDrawListener(final AgentPlaceholder ap, final AgentDrawListener drawListener,
+			final AllowOrder drawOrder) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					// if draw not allowed then no listener needed! I am Error
+					if(!drawOrder.allow)
+						throw new IllegalArgumentException("Cannot add draw listener with drawOrder.allow=false.");
+					if(allDrawListeners.containsKey(drawListener)) {
+						throw new IllegalArgumentException(
+								"Cannot add draw listener; listener has already been added: " + drawListener);
+					}
+					// add listener to list of all draw listeners
+					allDrawListeners.put(drawListener, drawOrder);
+					orderedDrawListeners.add(drawListener, drawOrder);
+					// add listener to agent
+					ap.agent.drawListeners.add(drawListener);
+				}
+			});
 	}
 
-	/*
-	 * Remove a single draw listener associated with the given Agent.
-	 */
-	public void removeDrawListener(Agent agent, AgentDrawListener drawListener) {
-		if(!allDrawListeners.containsKey(drawListener)) {
-			throw new IllegalArgumentException("Cannot remove draw listener because listener was not added, "+
-					"drawListener=" + drawListener + ", agent=" + agent);
-		}
-		// Get the current draw order for the listener...
-		AllowOrder currentOrder = allDrawListeners.get(drawListener);
-		// ... to find and remove the listener from the ordered tree/hashsets. 
-		orderedDrawListeners.change(drawListener, currentOrder, AllowOrder.NOT_ALLOWED);
-		// remove the listener from the list of all listeners
-		allDrawListeners.remove(drawListener);
-		// and remove the listener from the Agent's list of listeners
-		agent.drawListeners.remove(drawListener);
+	// remove a single draw listener associated with the given Agent
+	public void queueRemoveDrawListener(final AgentPlaceholder ap, final AgentDrawListener drawListener) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					if(!allDrawListeners.containsKey(drawListener)) {
+						throw new IllegalArgumentException("Cannot remove draw listener because listener was not "+
+								"added, drawListener=" + drawListener + ", agent=" + ap.agent);
+					}
+					// Get the current draw order for the listener...
+					AllowOrder currentOrder = allDrawListeners.get(drawListener);
+					// ... to find and remove the listener from the ordered tree/hashsets.
+					orderedDrawListeners.change(drawListener, currentOrder, AllowOrder.NOT_ALLOWED);
+					// remove the listener from the list of all listeners
+					allDrawListeners.remove(drawListener);
+					// and remove the listener from the Agent's list of listeners
+					ap.agent.drawListeners.remove(drawListener);
+				}
+			});
 	}
 
-	/*
-	 * Remove all draw listeners associated with the given Agent.
-	 */
+	// remove all draw listeners associated with the given Agent
 	private void removeAllDrawListeners(Agent agent) {
 		for(AgentDrawListener drawListener : agent.drawListeners) {
 			// remove the listener from the ordered treeset/hashsets
@@ -170,19 +192,29 @@ class AgencyIndex {
 	 * listener to itself. This is a good way to handle "dispose" functionality.
 	 * Note: AgencyIndex doesn't directly keep a list of all remove listeners, each Agent keeps their own list.
 	 */
-	public void addAgentRemoveListener(Agent agent, AgentRemoveListener removeListener) {
-		// This Agent keeps a ref to the listener, so that this Agent can delete the listener when this Agent
-		// is removed (garbage collection).
-		agent.myAgentRemoveListeners.add(removeListener);
-		// The other Agent keeps a ref to the listener, so that the other Agent can callback this Agent when
-		// other Agent is removed (agent removal callback).
-		removeListener.otherAgent.otherAgentRemoveListeners.add(removeListener);
+	public void queueAddAgentRemoveListener(final AgentPlaceholder ap, final AgentRemoveListener removeListener) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					// This Agent keeps a ref to the listener, so that this Agent can delete the listener when this
+					// Agent is removed (garbage collection).
+					ap.agent.myAgentRemoveListeners.add(removeListener);
+					// The other Agent keeps a ref to the listener, so that the other Agent can callback this Agent
+					// when other Agent is removed (agent removal callback).
+					removeListener.otherAgent.otherAgentRemoveListeners.add(removeListener);
+				}
+			});
 	}
 
 	// disassociate a single listener from the given agent and other Agent
-	public void removeAgentRemoveListener(Agent agent, AgentRemoveListener removeListener) {
-		agent.myAgentRemoveListeners.remove(removeListener);
-		removeListener.otherAgent.otherAgentRemoveListeners.remove(removeListener);
+	public void queueRemoveAgentRemoveListener(final AgentPlaceholder ap, final AgentRemoveListener removeListener) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					ap.agent.myAgentRemoveListeners.remove(removeListener);
+					removeListener.otherAgent.otherAgentRemoveListeners.remove(removeListener);
+				}
+			});
 	}
 
 	/*
@@ -204,48 +236,58 @@ class AgencyIndex {
 		agent.myAgentRemoveListeners.clear();
 	}
 
-	public void addAgentPropertyListener(Agent agent, AgentPropertyListener<?> listener, String propertyKey,
-			Boolean isGlobal) {
-		// if the property is global then add the property key to a global list
-		if(isGlobal) {
-			LinkedList<Agent> subList;
-			// If the property String isn't in the global list, then create an empty sub-list and add the new sub-list
-			// to the global list.
-			if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
-				subList = new LinkedList<Agent>();
-				globalPropertyKeyAgents.put(propertyKey, subList);
-			}
-			// otherwise get existing sub-list
-			else
-				subList = globalPropertyKeyAgents.get(propertyKey);
-			// add agent to sub-list for this property String, to associate the property listener with agent
-			subList.add(agent);
-			// keep a list of global property keys within Agent, for removal purposes
-			agent.globalPropertyKeys.add(propertyKey);
-		}
-		// add the property listener to the Agent locally
-		agent.propertyListeners.put(propertyKey, listener);
+	public void queueAddPropertyListener(final AgentPlaceholder ap, final AgentPropertyListener<?> listener,
+			final String propertyKey, final Boolean isGlobal) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					// if the property is global then add the property key to a global list
+					if(isGlobal) {
+						LinkedList<Agent> subList;
+						// If the property String isn't in the global list, then create an empty sub-list and add
+						// the new sub-list to the global list.
+						if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
+							subList = new LinkedList<Agent>();
+							globalPropertyKeyAgents.put(propertyKey, subList);
+						}
+						// otherwise get existing sub-list
+						else
+							subList = globalPropertyKeyAgents.get(propertyKey);
+						// add agent to sub-list for this property String, to associate the property listener to agent
+						subList.add(ap.agent);
+						// keep a list of global property keys within Agent, for removal purposes
+						ap.agent.globalPropertyKeys.add(propertyKey);
+					}
+					// add the property listener to the Agent locally
+					ap.agent.propertyListeners.put(propertyKey, listener);
+				}
+			});
 	}
 
-	public void removeAgentPropertyListener(Agent agent, String propertyKey) {
-		// if the property is a global property then remove it from the global property list
-		if(agent.globalPropertyKeys.contains(propertyKey)) {
-			// if the property String isn't in the global list, then throw exception
-			if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
-				throw new IllegalArgumentException("Cannot remove listener for property="+propertyKey+
-						", from agent="+agent);
-			}
-			// remove agent from the property sub-list
-			LinkedList<Agent> subList = globalPropertyKeyAgents.get(propertyKey);
-			subList.remove(agent);
-			// remove the sub-list if it is empty, to prevent accumulating empty lists
-			if(subList.isEmpty())
-				globalPropertyKeyAgents.remove(propertyKey);
-			// remove the key from the Agent's list of global property keys
-			agent.globalPropertyKeys.remove(propertyKey);
-		}
-		// remove property listener from agent locally
-		agent.propertyListeners.remove(propertyKey);
+	public void queueRemovePropertyListener(final AgentPlaceholder ap, final String propertyKey) {
+		changeQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() {
+					// if the property is a global property then remove it from the global property list
+					if(ap.agent.globalPropertyKeys.contains(propertyKey)) {
+						// if the property String isn't in the global list, then throw exception
+						if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
+							throw new IllegalArgumentException("Cannot remove listener for property="+propertyKey+
+									", from agent="+ap.agent);
+						}
+						// remove agent from the property sub-list
+						LinkedList<Agent> subList = globalPropertyKeyAgents.get(propertyKey);
+						subList.remove(ap.agent);
+						// remove the sub-list if it is empty, to prevent accumulating empty lists
+						if(subList.isEmpty())
+							globalPropertyKeyAgents.remove(propertyKey);
+						// remove the key from the Agent's list of global property keys
+						ap.agent.globalPropertyKeys.remove(propertyKey);
+					}
+					// remove property listener from agent locally
+					ap.agent.propertyListeners.remove(propertyKey);
+				}
+			});
 	}
 
 	// remove all property listeners associated with agent

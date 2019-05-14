@@ -27,7 +27,7 @@ public class Shemum extends CorpusAgent implements ContactDmgTakeAgent {
 				spine.createSolidContactSensor(), spine.createAgentSensor(), spine.createPlayerSensor());
 		spine.setBody(body);
 		brain = new ShemumBrain(this, agentHooks, spine);
-		sprite = new ShemumSprite(agentHooks.getAtlas(), body.getPosition());
+		sprite = new ShemumSprite(agentHooks.atlas, body.getPosition());
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) { brain.processContactFrame(); }

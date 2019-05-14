@@ -57,8 +57,8 @@ public class Pit extends PlayerAgent implements PowerupTakeAgent, ContactDmgTake
 				properties.getDirection4(CommonKV.KEY_DIRECTION, Direction4.NONE).isRight(),
 				properties.getInteger(KidIcarusKV.KEY_HEALTH, null),
 				properties.getInteger(KidIcarusKV.KEY_HEART_COUNT, null));
-		sprite = new PitSprite(agentHooks.getAtlas(), body.getPosition());
-		playerHUD = new PitHUD(this, agentHooks.getAtlas());
+		sprite = new PitSprite(agentHooks.atlas, body.getPosition());
+		playerHUD = new PitHUD(this, agentHooks.atlas);
 		createPropertyListeners();
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override

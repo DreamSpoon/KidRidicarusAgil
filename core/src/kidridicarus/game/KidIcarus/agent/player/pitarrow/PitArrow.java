@@ -33,7 +33,7 @@ public class PitArrow extends CorpusAgent {
 		spine.setBody(body);
 		brain = new PitArrowBrain(properties.get(CommonKV.KEY_PARENT_AGENT, null, Pit.class), agentHooks,
 				spine, properties.getBoolean(CommonKV.Spawn.KEY_EXPIRE, false), arrowDir);
-		sprite = new PitArrowSprite(agentHooks.getAtlas(),
+		sprite = new PitArrowSprite(agentHooks.atlas,
 				new PitArrowSpriteFrameInput(body.getPosition(), arrowDir));
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override

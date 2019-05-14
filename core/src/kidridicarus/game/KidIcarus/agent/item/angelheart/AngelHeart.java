@@ -28,7 +28,7 @@ public class AngelHeart extends CorpusAgent {
 				spine.createAgentSensor());
 		spine.setBody(body);
 		brain = new AngelHeartBrain(agentHooks, spine, agentProps.get(KidIcarusKV.KEY_HEART_COUNT, 1, Integer.class));
-		sprite = new AngelHeartSprite(agentHooks.getAtlas(), AP_Tool.getCenter(agentProps), brain.getHeartSize());
+		sprite = new AngelHeartSprite(agentHooks.atlas, AP_Tool.getCenter(agentProps), brain.getHeartSize());
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) {

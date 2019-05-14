@@ -25,7 +25,7 @@ public class VanishPoof extends CorpusAgent {
 	public VanishPoof(AgentHooks agentHooks, ObjectProperties properties) {
 		super(agentHooks, properties);
 		stateTimer = 0f;
-		sprite = new VanishPoofSprite(agentHooks.getAtlas(), AP_Tool.getCenter(properties),
+		sprite = new VanishPoofSprite(agentHooks.atlas, AP_Tool.getCenter(properties),
 				properties.getBoolean(KidIcarusKV.KEY_IS_BIG, false));
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {
 				@Override

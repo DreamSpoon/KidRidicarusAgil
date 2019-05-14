@@ -29,7 +29,7 @@ public class KidIcarusDoor extends CorpusAgent implements TriggerTakeAgent, Soli
 				spine.createAgentSensor());
 		spine.setBody(body);
 		brain = new KidIcarusDoorBrain(this, agentHooks, spine, isOpened, AP_Tool.getTargetName(properties));
-		sprite = new KidIcarusDoorSprite(agentHooks.getAtlas(), body.getPosition(), isOpened);
+		sprite = new KidIcarusDoorSprite(agentHooks.atlas, body.getPosition(), isOpened);
 		agentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) {
