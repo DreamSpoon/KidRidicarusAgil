@@ -5,15 +5,15 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import kidridicarus.agency.agent.AgentDrawListener;
 import kidridicarus.agency.agent.AgentPropertyListener;
 import kidridicarus.agency.agent.AgentRemoveListener;
 import kidridicarus.agency.agent.AgentUpdateListener;
-import kidridicarus.agency.tool.AllowOrder;
-import kidridicarus.agency.tool.AllowOrderList;
-import kidridicarus.agency.tool.AllowOrderList.AllowOrderListIter;
+import kidridicarus.agency.tool.Eye;
+import kidridicarus.agency.tool.FrameTime;
 
 /*
  * A list of all Agents in the Agency, and their associated update listeners and draw listeners. Agents can have
@@ -23,33 +23,37 @@ import kidridicarus.agency.tool.AllowOrderList.AllowOrderListIter;
 class AgencyIndex {
 	private interface AgencyChange { public void applyChange(); }
 
-	private LinkedBlockingQueue<AgencyChange> changeQ;
+	private LinkedBlockingQueue<AgencyChange> generalChangeQ;
+	private LinkedBlockingQueue<AgencyChange> updateListenerChangeQ;
 
 	private HashSet<Agent> allAgents;
-	private AllowOrderList orderedUpdateListeners;
-	private HashMap<AgentUpdateListener, AllowOrder> allUpdateListeners;
-	private AllowOrderList orderedDrawListeners;
-	private HashMap<AgentDrawListener, AllowOrder> allDrawListeners;
+	private HashMap<AgentUpdateListener, Float> allUpdateListeners;
+	private TreeMap<Float, HashSet<AgentUpdateListener>> orderedUpdateListeners;
+	private HashMap<AgentDrawListener, Float> allDrawListeners;
+	private TreeMap<Float, HashSet<AgentDrawListener>> orderedDrawListeners;
 	// sub-lists of Agents that have properties, indexed by property String
 	private HashMap<String, LinkedList<Agent>> globalPropertyKeyAgents;
 
 	AgencyIndex() {
 		allAgents = new HashSet<Agent>();
-		orderedUpdateListeners = new AllowOrderList();
-		allUpdateListeners = new HashMap<AgentUpdateListener, AllowOrder>();
-		orderedDrawListeners = new AllowOrderList();
-		allDrawListeners = new HashMap<AgentDrawListener, AllowOrder>();
+
+		allDrawListeners = new HashMap<AgentDrawListener, Float>();
+		orderedDrawListeners = new TreeMap<Float, HashSet<AgentDrawListener>>();
 		globalPropertyKeyAgents = new HashMap<String, LinkedList<Agent>>();
-		changeQ = new LinkedBlockingQueue<AgencyChange>();
+		generalChangeQ = new LinkedBlockingQueue<AgencyChange>();
+
+		allUpdateListeners = new HashMap<AgentUpdateListener, Float>();
+		orderedUpdateListeners = new TreeMap<Float, HashSet<AgentUpdateListener>>();
+		updateListenerChangeQ = new LinkedBlockingQueue<AgencyChange>();
 	}
 
-	public void processQueue() {
-		while(!changeQ.isEmpty())
-			changeQ.poll().applyChange();
+	public void processGeneralQueue() {
+		while(!generalChangeQ.isEmpty())
+			generalChangeQ.poll().applyChange();
 	}
 
 	public void queueAddAgent(final Agent agent) {
-		changeQ.add(new AgencyChange() {
+		generalChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() { allAgents.add(agent); }
 			});
@@ -61,7 +65,7 @@ class AgencyIndex {
 	 * state by way of removing draw, update, etc. listeners.
 	 */
 	public void queueRemoveAgent(final Agent agent) {
-		changeQ.add(new AgencyChange() {
+		generalChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					// If other Agents are listening for remove callback then do it, and garbage collect remove
@@ -75,23 +79,30 @@ class AgencyIndex {
 			});
 	}
 
+	public void processUpdateListenerQueue() {
+		while(!updateListenerChangeQ.isEmpty())
+			updateListenerChangeQ.poll().applyChange();
+	}
+
 	// add a single update listener and associate it with the given Agent
 	public void queueAddUpdateListener(final Agent agent, final AgentUpdateListener updateListener,
-			final AllowOrder updateOrder) {
-		changeQ.add(new AgencyChange() {
+			final Float updateOrder) {
+		updateListenerChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
-					// if updates not allowed then no listener needed! I am Error
-					if(!updateOrder.allow)
-						throw new IllegalArgumentException("Cannot add update listener with updateOrder.allow=false.");
 					if(allUpdateListeners.containsKey(updateListener)) {
 						throw new IllegalArgumentException(
 								"Cannot add update listener; listener has already been added: " + updateListener);
 					}
 					// add listener to list of all update listeners
 					allUpdateListeners.put(updateListener, updateOrder);
-					orderedUpdateListeners.add(updateListener, updateOrder);
-					// add listener to agent
+					HashSet<AgentUpdateListener> listenerSet = orderedUpdateListeners.get(updateOrder);
+					if(listenerSet == null) {
+						listenerSet = new HashSet<AgentUpdateListener>();
+						orderedUpdateListeners.put(updateOrder, listenerSet);
+					}
+					listenerSet.add(updateListener);
+					// add listener to Agent
 					agent.updateListeners.add(updateListener);
 				}
 			});
@@ -99,7 +110,7 @@ class AgencyIndex {
 
 	// remove a single update listener associated with the given Agent
 	public void queueRemoveUpdateListener(final Agent agent, final AgentUpdateListener updateListener) {
-		changeQ.add(new AgencyChange() {
+		updateListenerChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					if(!allUpdateListeners.containsKey(updateListener)) {
@@ -107,10 +118,14 @@ class AgencyIndex {
 								"Cannot remove update listener; listener was not added: " + updateListener);
 					}
 					// Get the current update order for the listener...
-					AllowOrder currentOrder = allUpdateListeners.get(updateListener);
+					float updateOrder = allUpdateListeners.get(updateListener);
 					// ... to find and remove the listener from the ordered tree/hashsets.
-					orderedUpdateListeners.change(updateListener, currentOrder, AllowOrder.NOT_ALLOWED);
-					// remove the listener from the list of all listeners
+					HashSet<AgentUpdateListener> listenerSet = orderedUpdateListeners.get(updateOrder);
+					listenerSet.remove(updateListener);
+					// remove empty sets to avoid wasting memory
+					if(listenerSet.isEmpty())
+						orderedUpdateListeners.remove(updateOrder);
+					// remove the listener from the set of all listeners
 					allUpdateListeners.remove(updateListener);
 					// and remove the listener from the Agent's list of listeners
 					agent.updateListeners.remove(updateListener);
@@ -124,9 +139,12 @@ class AgencyIndex {
 	private void removeAllUpdateListeners(Agent agent) {
 		for(AgentUpdateListener updateListener : agent.updateListeners) {
 			// remove the listener from the ordered treeset/hashsets
-			orderedUpdateListeners.change(updateListener, allUpdateListeners.get(updateListener),
-					AllowOrder.NOT_ALLOWED);
-			// remove the listener from the hash map of listeners and draw orders
+			float updateOrder = allUpdateListeners.get(updateListener);
+			HashSet<AgentUpdateListener> listenerSet = orderedUpdateListeners.get(updateOrder);
+			listenerSet.remove(updateListener);
+			// remove empty sets to avoid wasting memory
+			if(listenerSet.isEmpty())
+				orderedUpdateListeners.remove(updateOrder);
 			allUpdateListeners.remove(updateListener);
 		}
 		agent.updateListeners.clear();
@@ -134,21 +152,23 @@ class AgencyIndex {
 
 	// add a single draw listener and associate it with the given Agent
 	public void queueAddDrawListener(final Agent agent, final AgentDrawListener drawListener,
-			final AllowOrder drawOrder) {
-		changeQ.add(new AgencyChange() {
+			final float drawOrder) {
+		generalChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
-					// if draw not allowed then no listener needed! I am Error
-					if(!drawOrder.allow)
-						throw new IllegalArgumentException("Cannot add draw listener with drawOrder.allow=false.");
 					if(allDrawListeners.containsKey(drawListener)) {
 						throw new IllegalArgumentException(
 								"Cannot add draw listener; listener has already been added: " + drawListener);
 					}
 					// add listener to list of all draw listeners
 					allDrawListeners.put(drawListener, drawOrder);
-					orderedDrawListeners.add(drawListener, drawOrder);
-					// add listener to agent
+					HashSet<AgentDrawListener> listenerSet = orderedDrawListeners.get(drawOrder);
+					if(listenerSet == null) {
+						listenerSet = new HashSet<AgentDrawListener>();
+						orderedDrawListeners.put(drawOrder, listenerSet);
+					}
+					listenerSet.add(drawListener);
+					// add listener to Agent
 					agent.drawListeners.add(drawListener);
 				}
 			});
@@ -156,7 +176,7 @@ class AgencyIndex {
 
 	// remove a single draw listener associated with the given Agent
 	public void queueRemoveDrawListener(final Agent agent, final AgentDrawListener drawListener) {
-		changeQ.add(new AgencyChange() {
+		generalChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					if(!allDrawListeners.containsKey(drawListener)) {
@@ -164,9 +184,13 @@ class AgencyIndex {
 								"added, drawListener=" + drawListener + ", agent=" + agent);
 					}
 					// Get the current draw order for the listener...
-					AllowOrder currentOrder = allDrawListeners.get(drawListener);
+					float drawOrder = allDrawListeners.get(drawListener);
 					// ... to find and remove the listener from the ordered tree/hashsets.
-					orderedDrawListeners.change(drawListener, currentOrder, AllowOrder.NOT_ALLOWED);
+					HashSet<AgentDrawListener> listenerSet = orderedDrawListeners.get(drawOrder);
+					listenerSet.remove(drawListener);
+					// remove empty sets to avoid wasting memory
+					if(listenerSet.isEmpty())
+						orderedDrawListeners.remove(drawOrder);
 					// remove the listener from the list of all listeners
 					allDrawListeners.remove(drawListener);
 					// and remove the listener from the Agent's list of listeners
@@ -179,8 +203,12 @@ class AgencyIndex {
 	private void removeAllDrawListeners(Agent agent) {
 		for(AgentDrawListener drawListener : agent.drawListeners) {
 			// remove the listener from the ordered treeset/hashsets
-			orderedDrawListeners.change(drawListener, allDrawListeners.get(drawListener),
-					AllowOrder.NOT_ALLOWED);
+			float drawOrder = allDrawListeners.get(drawListener);
+			HashSet<AgentDrawListener> listenerSet = orderedDrawListeners.get(drawOrder);
+			listenerSet.remove(drawListener);
+			// remove empty sets to avoid wasting memory
+			if(listenerSet.isEmpty())
+				orderedDrawListeners.remove(drawOrder);
 			// remove the listener from the hash map of listeners and draw orders
 			allDrawListeners.remove(drawListener);
 		}
@@ -193,7 +221,7 @@ class AgencyIndex {
 	 * Note: AgencyIndex doesn't directly keep a list of all remove listeners, each Agent keeps their own list.
 	 */
 	public void queueAddAgentRemoveListener(final Agent agent, final AgentRemoveListener removeListener) {
-		changeQ.add(new AgencyChange() {
+		generalChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					// This Agent keeps a ref to the listener, so that this Agent can delete the listener when this
@@ -208,7 +236,7 @@ class AgencyIndex {
 
 	// disassociate a single listener from the given agent and other Agent
 	public void queueRemoveAgentRemoveListener(final Agent agent, final AgentRemoveListener removeListener) {
-		changeQ.add(new AgencyChange() {
+		generalChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					agent.myAgentRemoveListeners.remove(removeListener);
@@ -360,12 +388,35 @@ class AgencyIndex {
 		return true;
 	}
 
-	public void iterateThroughUpdateListeners(AllowOrderListIter uoli) {
-		orderedUpdateListeners.iterateList(uoli);
+	public void doPreStepAgentUpdates(FrameTime frameTime) {
+		Iterator<Entry<Float, HashSet<AgentUpdateListener>>> iter =
+				orderedUpdateListeners.headMap(0.0f).entrySet().iterator();
+		while(iter.hasNext()) {
+			Entry<Float, HashSet<AgentUpdateListener>> pair = iter.next();
+			for(AgentUpdateListener updateListener : pair.getValue())
+				updateListener.update(frameTime);
+		}
 	}
 
-	public void iterateThroughDrawListeners(AllowOrderListIter doli) {
-		orderedDrawListeners.iterateList(doli);
+	public void doPostStepAgentUpdates(FrameTime frameTime) {
+		Iterator<Entry<Float, HashSet<AgentUpdateListener>>> iter =
+				orderedUpdateListeners.tailMap(0.0f).entrySet().iterator();
+		while(iter.hasNext()) {
+			Entry<Float, HashSet<AgentUpdateListener>> pair = iter.next();
+			for(AgentUpdateListener updateListener : pair.getValue())
+				updateListener.update(frameTime);
+		}
+	}
+
+	public void doAgentDraws(Eye eye) {
+		// iterate through sorted subsets, from lowest draw order to highest draw order
+		Iterator<Entry<Float, HashSet<AgentDrawListener>>> iter = orderedDrawListeners.entrySet().iterator();
+		while(iter.hasNext()) {
+			Entry<Float, HashSet<AgentDrawListener>> pair = iter.next();
+			// iterate through subset of listeners at this specific draw order
+			for(AgentDrawListener drawListener : pair.getValue())
+				drawListener.draw(eye);
+		}
 	}
 
 	/*

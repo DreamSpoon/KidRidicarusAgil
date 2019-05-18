@@ -5,7 +5,6 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.agent.AgentDrawListener;
-import kidridicarus.agency.tool.AllowOrder;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
@@ -36,7 +35,7 @@ public class DrawLayerRole extends CorpusRole {
 	 * Returns draw order none if draw order not found for given layer,
 	 * otherwise returns a draw order object based on the layer's draw order property.
 	 */
-	private AllowOrder getDrawOrderForLayer(TiledMapTileLayer layer, DrawOrderAlias[] drawOrderAliasList) {
+	private Float getDrawOrderForLayer(TiledMapTileLayer layer, DrawOrderAlias[] drawOrderAliasList) {
 		// does the layer contain a draw order key with a float value?
 		Float drawOrderFloat = null;
 		try {
@@ -50,14 +49,12 @@ public class DrawLayerRole extends CorpusRole {
 			}
 			catch(ClassCastException cce2) {
 				// return null because no float value and no string found to indicate draw order for layer
-				return CommonInfo.DrawOrder.NONE;
+				return null;
 			}
 			// check draw order aliases to translate to draw order object
 			return DrawOrderAlias.getDrawOrderForAlias(drawOrderAliasList, drawOrderStr);
 		}
-		if(drawOrderFloat == null)
-			return CommonInfo.DrawOrder.NONE;
-		return new AllowOrder(true, drawOrderFloat);
+		return drawOrderFloat;
 	}
 
 	@Override

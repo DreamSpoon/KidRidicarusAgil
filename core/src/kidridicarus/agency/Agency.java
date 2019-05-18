@@ -7,16 +7,12 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Disposable;
 
-import kidridicarus.agency.agent.AgentDrawListener;
-import kidridicarus.agency.agent.AgentUpdateListener;
 import kidridicarus.agency.agentbody.AgentContactFilter;
 import kidridicarus.agency.agentbody.AgentContactListener;
-import kidridicarus.agency.tool.AllowOrderList.AllowOrderListIter;
 import kidridicarus.agency.tool.Ear;
 import kidridicarus.agency.tool.EarPlug;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
-import kidridicarus.common.tool.QQ;
 
 /*
  * Desc:
@@ -80,21 +76,21 @@ public class Agency implements Disposable {
 	}
 
 	public void update(final float timeDelta) {
+		// call update listeners with update order < 0
+		agencyIndex.doPreStepAgentUpdates(new FrameTime(timeDelta, globalTimer));
+		// process the update listener queue, so that listeners with update order >= 0 can be called post World.step
+		agencyIndex.processUpdateListenerQueue();
+
 		panWorld.step(timeDelta, 6, 2);
+		// NOTE globalTimer is different for Agent post-step methods
+		// TODO verify if this is the correct course of action?
 		globalTimer += timeDelta;
 
-		// loop through list of agents receiving updates, calling each agent's update method
-		agencyIndex.iterateThroughUpdateListeners(new AllowOrderListIter() {
-				@Override
-				public boolean iterate(Object obj) {
-					if(obj instanceof AgentUpdateListener)
-						((AgentUpdateListener) obj).update(new FrameTime(timeDelta, globalTimer));
-					// continue iterating
-					return false;
-				}
-			});
+		// call update listeners with update order >= 0
+		agencyIndex.doPostStepAgentUpdates(new FrameTime(timeDelta, globalTimer));
 		// apply changes
-		agencyIndex.processQueue();
+		agencyIndex.processGeneralQueue();
+		agencyIndex.processUpdateListenerQueue();
 	}
 
 	public AgentHooksBundle createAgentHooksBundle() {
@@ -115,17 +111,7 @@ public class Agency implements Disposable {
 		if(myEye == null)
 			return;
 		myEye.begin();
-		agencyIndex.iterateThroughDrawListeners(new AllowOrderListIter() {
-			@Override
-			public boolean iterate(Object obj) {
-				if(obj instanceof AgentDrawListener)
-					((AgentDrawListener) obj).draw(myEye);
-				else
-					QQ.pr("unknown object in draw list iteration object: " + obj);
-				// return false to continue iterating
-				return false;
-			}
-		});
+		agencyIndex.doAgentDraws(myEye);
 		myEye.end();
 	}
 

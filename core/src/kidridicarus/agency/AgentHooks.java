@@ -7,7 +7,6 @@ import kidridicarus.agency.agent.AgentPropertyListener;
 import kidridicarus.agency.agent.AgentRemoveCallback;
 import kidridicarus.agency.agent.AgentRemoveListener;
 import kidridicarus.agency.agent.AgentUpdateListener;
-import kidridicarus.agency.tool.AllowOrder;
 
 /*
  * Even though this class is inside Agency, it is called AgentHooks and not AgencyHooks because the Object is
@@ -43,7 +42,7 @@ public class AgentHooks {
 		myAgency.agencyIndex.removePropertyListener(ownerAgent, propertyKey);
 	}
 
-	public void addUpdateListener(AllowOrder updateOrder, AgentUpdateListener updateListener) {
+	public void addUpdateListener(float updateOrder, AgentUpdateListener updateListener) {
 		// method order of arguments differs from the changeQ method, for inline listener creation convenience
 		myAgency.agencyIndex.queueAddUpdateListener(ownerAgent, updateListener, updateOrder);
 	}
@@ -52,7 +51,7 @@ public class AgentHooks {
 		myAgency.agencyIndex.queueRemoveUpdateListener(ownerAgent, updateListener);
 	}
 
-	public void addDrawListener(AllowOrder drawOrder, AgentDrawListener drawListener) {
+	public void addDrawListener(float drawOrder, AgentDrawListener drawListener) {
 		// method order of arguments differs from the changeQ method, for inline listener creation convenience
 		myAgency.agencyIndex.queueAddDrawListener(ownerAgent, drawListener, drawOrder);
 	}

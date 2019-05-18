@@ -1,6 +1,5 @@
 package kidridicarus.common.info;
 
-import kidridicarus.agency.tool.AllowOrder;
 import kidridicarus.common.tool.DrawOrderAlias;
 
 public class CommonInfo {
@@ -17,22 +16,20 @@ public class CommonInfo {
 	public static final String TA_MAIN_FILENAME = "sprite/KidRidicarusSprites.pack";
 
 	public static class DrawOrder {
-		public static final AllowOrder NONE = AllowOrder.NOT_ALLOWED;
-		public static final AllowOrder UPDATE_CAMERA = new AllowOrder(true, -9000f);
-		public static final AllowOrder MAP_BACKGROUND = new AllowOrder(true, 0f);
-		public static final AllowOrder MAP_BOTTOM = new AllowOrder(true, 2f);
-		public static final AllowOrder MAP_MIDDLE = new AllowOrder(true, 4f);
-		public static final AllowOrder MAP_TOP = new AllowOrder(true, 6f);
-		public static final AllowOrder SPRITE_BOTTOM = new AllowOrder(true, 1f);
-		public static final AllowOrder SPRITE_MIDDLE = new AllowOrder(true, 3f);
-		public static final AllowOrder SPRITE_TOP = new AllowOrder(true, 5f);
-		public static final AllowOrder SPRITE_TOPFRONT = new AllowOrder(true, 7f);
+		public static final float UPDATE_CAMERA = -9000f;
+		public static final float MAP_BACKGROUND = 0f;
+		public static final float MAP_BOTTOM = 2f;
+		public static final float MAP_MIDDLE = 4f;
+		public static final float MAP_TOP = 6f;
+		public static final float SPRITE_BOTTOM = 1f;
+		public static final float SPRITE_MIDDLE = 3f;
+		public static final float SPRITE_TOP = 5f;
+		public static final float SPRITE_TOPFRONT = 7f;
 		// it's not over 9000
-		public static final AllowOrder PLAYER_HUD = new AllowOrder(true, 9000f);
+		public static final float PLAYER_HUD = 9000f;
 	}
 
 	public static final DrawOrderAlias[] KIDRID_DRAWORDER_ALIAS = new DrawOrderAlias[] {
-			new DrawOrderAlias("none", DrawOrder.NONE),
 			new DrawOrderAlias("map_background", DrawOrder.MAP_BACKGROUND),
 			new DrawOrderAlias("map_bottom", DrawOrder.MAP_BOTTOM),
 			new DrawOrderAlias("map_middle", DrawOrder.MAP_MIDDLE),
@@ -43,13 +40,12 @@ public class CommonInfo {
 		};
 
 	public static class UpdateOrder {
-		public static final AllowOrder NONE = AllowOrder.NOT_ALLOWED;
 		// update first
-		public static final AllowOrder PRE_AGENCY_UPDATE = new AllowOrder(true, -9000f);
-		public static final AllowOrder PRE_MOVE_UPDATE = new AllowOrder(true, 0f);
-		public static final AllowOrder MOVE_UPDATE = new AllowOrder(true, 1f);
-		public static final AllowOrder POST_MOVE_UPDATE = new AllowOrder(true, 2f);
-		public static final AllowOrder POST_AGENCY_UPDATE = new AllowOrder(true, 9000f);
+		public static final float PRE_AGENCY_UPDATE = -9000f;
+		public static final float PRE_MOVE_UPDATE = 0f;
+		public static final float MOVE_UPDATE = 1f;
+		public static final float POST_MOVE_UPDATE = 2f;
+		public static final float POST_AGENCY_UPDATE = 9000f;
 		// update last
 	}
 
