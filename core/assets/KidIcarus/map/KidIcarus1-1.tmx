@@ -46,9 +46,9 @@
  </layer>
  <layer id="43" name="playerstart" width="18" height="232">
   <properties>
-   <property name="agent_class" value="player_spawner"/>
    <property name="direction" value="right"/>
-   <property name="player_agent_class" value="pit"/>
+   <property name="player_role_class" value="pit"/>
+   <property name="role_class" value="player_spawner"/>
    <property name="spawn_main" value="true"/>
   </properties>
   <data encoding="base64" compression="zlib">
@@ -57,7 +57,7 @@
  </layer>
  <objectgroup id="31" name="door_exit">
   <properties>
-   <property name="agent_class" value="player_spawner"/>
+   <property name="role_class" value="player_spawner"/>
   </properties>
   <object id="65" x="220.25" y="647.333" width="16" height="16">
    <properties>
@@ -95,7 +95,7 @@
  </objectgroup>
  <objectgroup id="30" name="door_entrance">
   <properties>
-   <property name="agent_class" value="kid_icarus_door"/>
+   <property name="role_class" value="kid_icarus_door"/>
   </properties>
   <object id="64" x="240" y="3328" width="16" height="32">
    <properties>
@@ -130,11 +130,11 @@
  </objectgroup>
  <objectgroup id="17" name="shemum">
   <properties>
-   <property name="agent_class" value="agent_spawner"/>
-   <property name="spawn_agent_class" value="shemum"/>
+   <property name="role_class" value="role_spawner"/>
    <property name="spawn_multi_count" value="4"/>
    <property name="spawn_multi_grp_count" value="4"/>
    <property name="spawn_multi_rate" value="1"/>
+   <property name="spawn_role_class" value="shemum"/>
    <property name="spawn_scroll_direction" value="up"/>
    <property name="spawner_type" value="spawner_type_multi"/>
   </properties>
@@ -152,7 +152,7 @@
  </layer>
  <objectgroup id="15" name="semisolid_floor">
   <properties>
-   <property name="agent_class" value="semi_solid_floor"/>
+   <property name="role_class" value="semi_solid_floor"/>
   </properties>
   <object id="15" x="96" y="2880" width="32" height="16"/>
   <object id="16" x="160" y="2880" width="32" height="16"/>
@@ -197,7 +197,7 @@
  </objectgroup>
  <objectgroup id="6" name="levelend">
   <properties>
-   <property name="agent_class" value="level_end_trigger"/>
+   <property name="role_class" value="level_end_trigger"/>
   </properties>
   <object id="10" x="240" y="912" width="16" height="32">
    <properties>
@@ -207,7 +207,7 @@
  </objectgroup>
  <objectgroup id="5" name="rooms" visible="0">
   <properties>
-   <property name="agent_class" value="room"/>
+   <property name="role_class" value="room"/>
   </properties>
   <object id="6" x="16" y="768" width="256" height="2872">
    <properties>

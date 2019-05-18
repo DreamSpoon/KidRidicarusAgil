@@ -20,7 +20,7 @@ import kidridicarus.agency.tool.Eye;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.KeyboardMapping;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.metaagent.tiledmap.TiledMapMetaAgent;
+import kidridicarus.common.metarole.tiledmap.TiledMapMetaRole;
 import kidridicarus.game.MyKidRidicarus;
 
 public class InstructionsScreen implements Screen {
@@ -52,14 +52,14 @@ public class InstructionsScreen implements Screen {
 		Gdx.input.setInputProcessor(new MyLittleInPr());
 
 		// load the game map
-		game.agency.externalCreateAgent(TiledMapMetaAgent.makeAP((new TmxMapLoader()).load(CommonInfo.INSTRO_FILENAME)));
+		game.story.externalCreateRole(TiledMapMetaRole.makeRP((new TmxMapLoader()).load(CommonInfo.INSTRO_FILENAME)));
 		// run one update to let the map create the solid tile map and draw layer agents
-		game.agency.update(1f/60f);
+		game.story.update(1f/60f);
 		// run a second update for the map to create the other agents (e.g. player spawner, rooms)
-		game.agency.update(1f/60f);
+		game.story.update(1f/60f);
 
 		myEye = new Eye(game.batch, gamecam);
-		game.agency.setEye(myEye);
+		game.story.setEye(myEye);
 	}
 
 	private void setupStage() {
@@ -123,7 +123,7 @@ public class InstructionsScreen implements Screen {
 	}
 
 	private void update(float delta) {
-		game.agency.update(delta);
+		game.story.update(delta);
 		myEye.setViewCenter(UInfo.VectorP2M(CommonInfo.V_WIDTH/2f, CommonInfo.V_HEIGHT/2f));
 	}
 
@@ -133,7 +133,7 @@ public class InstructionsScreen implements Screen {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 		// draw screen
-		game.agency.draw();
+		game.story.draw();
 
 		// draw HUD last
 		stage.draw();
@@ -165,6 +165,6 @@ public class InstructionsScreen implements Screen {
 	public void dispose() {
 		Gdx.input.setInputProcessor(oldInPr);
 		stage.dispose();
-		game.agency.removeAllAgents();
+		game.story.removeAllRoles();
 	}
 }

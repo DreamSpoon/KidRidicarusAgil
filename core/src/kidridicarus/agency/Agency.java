@@ -1,37 +1,21 @@
 package kidridicarus.agency;
 
-import java.lang.reflect.Constructor;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
-import com.badlogic.gdx.physics.box2d.BodyDef;
-import com.badlogic.gdx.physics.box2d.Joint;
 import com.badlogic.gdx.physics.box2d.World;
-import com.badlogic.gdx.physics.box2d.joints.MouseJointDef;
 import com.badlogic.gdx.utils.Disposable;
 
-import kidridicarus.agency.agencychange.AgentPlaceholder;
 import kidridicarus.agency.agent.AgentDrawListener;
-import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agent.AgentRemoveCallback;
-import kidridicarus.agency.agent.AgentRemoveListener;
 import kidridicarus.agency.agent.AgentUpdateListener;
 import kidridicarus.agency.agentbody.AgentContactFilter;
 import kidridicarus.agency.agentbody.AgentContactListener;
-import kidridicarus.agency.info.AgencyKV;
-import kidridicarus.agency.tool.AgentClassList;
-import kidridicarus.agency.tool.AllowOrder;
 import kidridicarus.agency.tool.AllowOrderList.AllowOrderListIter;
 import kidridicarus.agency.tool.Ear;
 import kidridicarus.agency.tool.EarPlug;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
-import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.tool.QQ;
 
 /*
@@ -70,29 +54,29 @@ import kidridicarus.common.tool.QQ;
  *        while draw method is called 60 times per second).
  */
 public class Agency implements Disposable {
-	private AgentClassList allAgentsClassList;
-	private TextureAtlas panAtlas;
-	private AgencyIndex agencyIndex;
-	// Agency needs an earplug because it looks cool... and lets Agents exchange audio info
-	private EarPlug earplug;
-	private Eye myEye;
+	World panWorld;
+	TextureAtlas panAtlas;
+	Eye myEye;
+	EarPlug earplug;
+	AgencyIndex agencyIndex;
+	private PhysicsHooks panPhysHooks;
+	private GfxHooks panGfxHooks;
+	private AudioHooks panAudioHooks;
 	// how much time has passed (via updates) since this Agency was constructed?
 	private float globalTimer;
-	private World panWorld;
-	private PhysicsHooks panPhysHooks;
 
-	public Agency(AgentClassList allAgentsClassList, TextureAtlas atlas) {
-		this.allAgentsClassList = allAgentsClassList;
-		this.panAtlas = atlas;
-		agencyIndex = new AgencyIndex();
-		globalTimer = 0f;
-		earplug = new EarPlug();
-		myEye = null;
-
+	public Agency(TextureAtlas atlas) {
 		panWorld = new World(new Vector2(0, -10f), true);
 		panWorld.setContactListener(new AgentContactListener());
 		panWorld.setContactFilter(new AgentContactFilter());
-		panPhysHooks = new PhysicsHooks(panWorld);
+		this.panAtlas = atlas;
+		myEye = null;
+		earplug = new EarPlug();
+		agencyIndex = new AgencyIndex();
+		panPhysHooks = new PhysicsHooks(this);
+		panGfxHooks = new GfxHooks(this);
+		panAudioHooks = new AudioHooks(this);
+		globalTimer = 0f;
 	}
 
 	public void update(final float timeDelta) {
@@ -113,59 +97,10 @@ public class Agency implements Disposable {
 		agencyIndex.processQueue();
 	}
 
-	/*
-	 * Create many agents from a collection of agent properties, and return a list of the created Agents.
-	 */
-	private List<Agent> hookCreateAgents(Collection<ObjectProperties> agentProps) {
-		LinkedList<Agent> aList = new LinkedList<Agent>();
-		Iterator<ObjectProperties> apIter = agentProps.iterator();
-		while(apIter.hasNext())
-			aList.add(hookCreateAgent(apIter.next()));
-		return aList;
-	}
-
-	public Agent externalCreateAgent(ObjectProperties properties) {
-		return hookCreateAgent(properties);
-	}
-
-	/*
-	 * Create an agent from the given agent properties.
-	 * See website:
-	 * http://www.avajava.com/tutorials/lessons/how-do-i-create-an-object-via-its-multiparameter-constructor-using-reflection.html
-	 */
-	private Agent hookCreateAgent(ObjectProperties properties) {
-		String agentClassAlias = properties.getString(AgencyKV.KEY_AGENT_CLASS, null);
-		if(agentClassAlias == null)
-			throw new IllegalArgumentException(AgencyKV.KEY_AGENT_CLASS + " key not found in agent definition.");
-
-		Class<?> agentClass = allAgentsClassList.get(agentClassAlias);
-		if(agentClass == null)
-			return null;
-
-		Agent newlyCreatedAgent = null;
-		// When the Agent object is constructed, it may invoke calls to enable Agent updates or set Agent draw order,
-		// so a placeholder must be inserted before creating the object. The Agent's real reference is put into the
-		// placeholder after the Agent constructor code is finished executing. All changes tied to the placeholder will
-		// not be executed until the change queue is processed.
-		AgentPlaceholder agentPlaceholder = new AgentPlaceholder(null);
-		agencyIndex.queueAddAgent(agentPlaceholder);
-		// Agency hooks are unique to each Agent, for disposal coordination. e.g. Automatically disposing all
-		// bodies created by Agent when Agent is disposed. Only an AgentPlaceholder is needed for this purpose,
-		// since the hooks will only need an Agent ref when Agency enters the changeQ processing phase, which occurs
-		// after all Agent constructors are finished processing.
-		AgentHooks newInternalHooks = new AgentHooks(agentPlaceholder, panPhysHooks, panAtlas);
-		try {
-			Constructor<?> constructor =
-					agentClass.getConstructor(new Class[] { AgentHooks.class, ObjectProperties.class });
-			newlyCreatedAgent = (Agent) constructor.newInstance(new Object[] { newInternalHooks, properties });
-		}
-		catch(Exception e) {
-			e.printStackTrace();
-			throw new IllegalStateException("Unable to create Agent.");
-		}
-
-		agentPlaceholder.agent = newlyCreatedAgent;
-		return newlyCreatedAgent;
+	public AgentHooksBundle createAgentHooksBundle() {
+		Agent newAgent = new Agent();
+		agencyIndex.queueAddAgent(newAgent);
+		return new AgentHooksBundle(newAgent, new AgentHooks(this, newAgent), panPhysHooks, panAudioHooks, panGfxHooks);
 	}
 
 	public void setEar(Ear ear) {
@@ -194,28 +129,29 @@ public class Agency implements Disposable {
 		myEye.end();
 	}
 
-	private LinkedList<Agent> hookGetAgentsByProperties(String[] keys, Object[] vals) {
+	LinkedList<Agent> hookGetAgentsByProperties(String[] keys, Object[] vals) {
 		return agencyIndex.getAgentsByProperties(keys, vals, false);
 	}
 
-//	private Agent hookGetFirstAgentByProperties(String[] keys, Object[] vals) {
+//	Agent hookGetFirstAgentByProperties(String[] keys, Object[] vals) {
 //		LinkedList<Agent> aList = agencyIndex.getAgentsByProperties(keys, vals, true);
 //		if(aList.isEmpty())
 //			return null;
 //		return aList.getFirst();
 //	}
 
-//	private LinkedList<Agent> hookGetAgentsByProperty(String key, Object val) {
+//	LinkedList<Agent> hookGetAgentsByProperty(String key, Object val) {
 //		return agencyIndex.getAgentsByProperties(new String[] { key }, new Object[] { val }, false);
 //	}
 
-	private Agent hookGetFirstAgentByProperty(String key, Object val) {
+	Agent hookGetFirstAgentByProperty(String key, Object val) {
 		LinkedList<Agent> aList = agencyIndex.getAgentsByProperties(new String[] { key }, new Object[] { val }, true);
 		if(aList.isEmpty())
 			return null;
 		return aList.getFirst();
 	}
 
+	// for Box2D debug renderer
 	public World externalGetWorld() {
 		return panWorld;
 	}
@@ -233,123 +169,5 @@ public class Agency implements Disposable {
 	public void dispose() {
 		removeAllAgents();
 		panWorld.dispose();
-	}
-
-	/*
-	 * Even though this class is inside Agency, it is called AgentHooks and not AgencyHooks because the Object is
-	 * "bound" to each Agent, not just this Agency. In future code, an AgencyHooks class will also be created, for
-	 * external hooks usage.
-	 * Side-Note: See class AgentScriptHooks.
-	 */
-	public class AgentHooks {
-		private AgentPlaceholder ownerAP;
-		public final PhysicsHooks physHooks;
-		public final TextureAtlas atlas;
-
-		private AgentHooks(AgentPlaceholder ownerAP, PhysicsHooks physHooks, TextureAtlas atlas) {
-			this.ownerAP = ownerAP;
-			this.physHooks = physHooks;
-			this.atlas = atlas;
-		}
-
-		public Agent createAgent(ObjectProperties properties) {
-			return hookCreateAgent(properties);
-		}
-
-		public List<Agent> createAgents(LinkedList<ObjectProperties> propertiesList) {
-			return hookCreateAgents(propertiesList);
-		}
-
-		// Agent can only remove itself, if a sub-Agent needs removal then the sub-Agent must remove itself
-		public void removeThisAgent() {
-			agencyIndex.queueRemoveAgent(ownerAP);
-		}
-
-		public void addPropertyListener(boolean isGlobal, String propertyKey,
-				AgentPropertyListener<?> propertyListener) {
-			// method order of arguments differs from the changeQ method, for inline listener creation convenience
-			agencyIndex.queueAddPropertyListener(ownerAP, propertyListener, propertyKey, isGlobal);
-		}
-
-		public void removePropertyListener(String propertyKey) {
-			agencyIndex.queueRemovePropertyListener(ownerAP, propertyKey);
-		}
-
-		public void addUpdateListener(AllowOrder updateOrder, AgentUpdateListener updateListener) {
-			// method order of arguments differs from the changeQ method, for inline listener creation convenience
-			agencyIndex.queueAddUpdateListener(ownerAP, updateListener, updateOrder);
-		}
-
-		public void removeUpdateListener(AgentUpdateListener updateListener) {
-			agencyIndex.queueRemoveUpdateListener(ownerAP, updateListener);
-		}
-
-		public void addDrawListener(AllowOrder drawOrder, AgentDrawListener drawListener) {
-			// method order of arguments differs from the changeQ method, for inline listener creation convenience
-			agencyIndex.queueAddDrawListener(ownerAP, drawListener, drawOrder);
-		}
-
-		public void removeDrawListener(AgentDrawListener drawListener) {
-			agencyIndex.queueRemoveDrawListener(ownerAP, drawListener);
-		}
-
-		/*
-		 * Returns a reference to the listener created so that the Agent can remove the listener later using the
-		 * reference.
-		 * For flexibility, each AgentRemoveListener is unique to its combination of
-		 * ( listeningAgent, otherAgent, callback ), so removal of the AgentRemoveListener requires either a
-		 * reference to the listener, or references to the 3 things mentioned above - it's just easier to return the
-		 * AgentRemoveListener, instead of requiring removeAgentRemoveListener to lookup the AgentRemoveListener
-		 * based on ( listeningAgent, otherAgent, callback ).
-		 */
-		public AgentRemoveListener createAgentRemoveListener(Agent otherAgent, AgentRemoveCallback callback) {
-			AgentRemoveListener removeListener = new AgentRemoveListener(ownerAP, otherAgent, callback);
-			agencyIndex.queueAddAgentRemoveListener(ownerAP, removeListener);
-			return removeListener;
-		}
-
-		public void removeAgentRemoveListener(AgentRemoveListener removeListener) {
-			agencyIndex.queueRemoveAgentRemoveListener(ownerAP, removeListener);
-		}
-
-		public Agent getFirstAgentByProperty(String key, Object val) {
-			return hookGetFirstAgentByProperty(key, val);
-		}
-
-		public LinkedList<Agent> getAgentsByProperties(String[] keys, Object[] vals) {
-			return hookGetAgentsByProperties(keys, vals);
-		}
-
-		public boolean isValidAgentClassAlias(String strClassAlias) {
-			return allAgentsClassList.get(strClassAlias) != null;
-		}
-
-		public Ear getEar() {
-			return earplug.getEar();
-		}
-
-		public Eye getEye() {
-			return myEye;
-		}
-	}
-
-	public class PhysicsHooks {
-		private World physHooksWorld;
-
-		public PhysicsHooks(World physHooksWorld) {
-			this.physHooksWorld = physHooksWorld;
-		}
-
-		public Body createBody(BodyDef bdef) {
-			return physHooksWorld.createBody(bdef);
-		}
-
-		public void destroyBody(Body body) {
-			physHooksWorld.destroyBody(body);
-		}
-
-		public Joint createJoint(MouseJointDef mjdef) {
-			return physHooksWorld.createJoint(mjdef);
-		}
 	}
 }

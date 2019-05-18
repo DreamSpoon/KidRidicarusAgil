@@ -4,15 +4,15 @@ import kidridicarus.game.KidIcarus.KidIcarusKV;
 
 public enum PowChar {
 	NONE(""),
-	PIT(KidIcarusKV.AgentClassAlias.VAL_PIT);
+	PIT(KidIcarusKV.RoleClassAlias.VAL_PIT);
 
-	private String agentClassAlias;
+	private String roleClassAlias;
 
-	private PowChar(String agentClassAlias) {
-		this.agentClassAlias = agentClassAlias;
+	private PowChar(String roleClassAlias) {
+		this.roleClassAlias = roleClassAlias;
 	}
 
-	public String getAgentClassAlias() {
-		return agentClassAlias;
+	public String getRoleClassAlias() {
+		return roleClassAlias;
 	}
 }

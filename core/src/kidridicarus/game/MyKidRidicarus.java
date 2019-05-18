@@ -7,13 +7,13 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 
-import kidridicarus.agency.Agency;
-import kidridicarus.agency.tool.AgentClassList;
-import kidridicarus.common.info.CommonAgentClassList;
+import kidridicarus.common.info.CommonRoleClassList;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.screen.InstructionsScreen;
-import kidridicarus.game.KidIcarus.KidIcarusAgentClassList;
+import kidridicarus.game.KidIcarus.KidIcarusRoleClassList;
 import kidridicarus.game.KidIcarus.KidIcarusAudio;
+import kidridicarus.story.Story;
+import kidridicarus.story.tool.RoleClassList;
 
 /*
  * Main game asset loader class.
@@ -22,7 +22,7 @@ public class MyKidRidicarus extends Game {
 	public SpriteBatch batch;
 	private TextureAtlas atlas;
 	public AssetManager manager;
-	public Agency agency;
+	public Story story;
 
 	@Override
 	public void create () {
@@ -37,8 +37,8 @@ public class MyKidRidicarus extends Game {
 		manager.load(KidIcarusAudio.Sound.General.HEART_PICKUP, Sound.class);
 		manager.load(KidIcarusAudio.Sound.General.SMALL_POOF, Sound.class);
 		manager.finishLoading();
-		agency = new Agency(new AgentClassList(CommonAgentClassList.CORE_AGENT_CLASS_LIST,
-				KidIcarusAgentClassList.KIDICARUS_AGENT_CLASSLIST), atlas);
+		story = new Story(new RoleClassList(CommonRoleClassList.CORE_ROLE_CLASS_LIST,
+				KidIcarusRoleClassList.KIDICARUS_ROLE_CLASSLIST), atlas);
 		// show intro/instructions screen
 		setScreen(new InstructionsScreen(this, CommonInfo.GAMEMAP_FILENAME2));
 	}
@@ -48,7 +48,7 @@ public class MyKidRidicarus extends Game {
 		super.dispose();
 		if(getScreen() != null)
 			getScreen().dispose();
-		agency.dispose();
+		story.dispose();
 		batch.dispose();
 		atlas.dispose();
 		manager.dispose();

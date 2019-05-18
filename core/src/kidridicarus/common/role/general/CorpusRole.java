@@ -1,0 +1,59 @@
+package kidridicarus.common.role.general;
+
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Disposable;
+
+import kidridicarus.agency.agent.AgentPropertyListener;
+import kidridicarus.agency.agentbody.AgentBody;
+import kidridicarus.agency.tool.ObjectProperties;
+import kidridicarus.common.info.CommonKV;
+import kidridicarus.story.Role;
+import kidridicarus.story.RoleHooks;
+
+public abstract class CorpusRole extends Role implements Disposable {
+	protected AgentBody body;
+
+	public CorpusRole(RoleHooks roleHooks, ObjectProperties properties) {
+		super(roleHooks, properties);
+		body = null;
+		myAgentHooks.addPropertyListener(false, CommonKV.KEY_POSITION,
+				new AgentPropertyListener<Vector2>(Vector2.class) {
+				@Override
+				public Vector2 getValue() { return getPosition(); }
+			});
+		myAgentHooks.addPropertyListener(false, CommonKV.KEY_BOUNDS,
+				new AgentPropertyListener<Rectangle>(Rectangle.class) {
+				@Override
+				public Rectangle getValue() { return getBounds(); }
+			});
+		myAgentHooks.addPropertyListener(false, CommonKV.KEY_VELOCITY,
+				new AgentPropertyListener<Vector2>(Vector2.class) {
+				@Override
+				public Vector2 getValue() { return getVelocity(); }
+			});
+	}
+
+	// The following 3 methods (get position, bounds, velocity) are not coded inline above so that subclasses can
+	// override them as needed.
+
+	protected Vector2 getPosition() {
+		return body != null ? body.getPosition() : null;
+	}
+
+	protected Rectangle getBounds() {
+		return body != null ? body.getBounds() : null;
+	}
+
+	protected Vector2 getVelocity() {
+		return body != null ? body.getVelocity() : null;
+	}
+
+	@Override
+	public void dispose() {
+		if(body != null) {
+			body.dispose();
+			body = null;
+		}
+	}
+}

@@ -6,8 +6,8 @@ import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.utils.Disposable;
 
-import kidridicarus.agency.Agency.PhysicsHooks;
 import kidridicarus.agency.Agent;
+import kidridicarus.agency.PhysicsHooks;
 import kidridicarus.common.info.CommonCF;
 
 /*
@@ -23,21 +23,21 @@ import kidridicarus.common.info.CommonCF;
  *   -remove the defineBody/dispose paradigm, replace with the above described create/destroy method paradigm
  */
 public class AgentBody implements Disposable {
-	protected final Agent parent;
+	private final Agent parentAgent;
 	protected final PhysicsHooks physHooks;
 	protected Body b2body;
 	// bounds size is for information purposes only, it is not necessarily the current dimensions of b2body
 	private Vector2 boundsSize;
 
-	public AgentBody(Agent parent, PhysicsHooks physHooks) {
-		this.parent = parent;
+	public AgentBody(Agent parentAgent, PhysicsHooks physHooks) {
+		this.parentAgent = parentAgent;
 		this.physHooks = physHooks;
 		b2body = null;
 		boundsSize = new Vector2(0f, 0f);
 	}
 
 	public Agent getParent() {
-		return parent;
+		return parentAgent;
 	}
 
 	public Vector2 getPosition() {

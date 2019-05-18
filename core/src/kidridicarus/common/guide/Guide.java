@@ -8,12 +8,12 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.utils.Disposable;
 
-import kidridicarus.agency.Agency;
 import kidridicarus.agency.tool.Ear;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.AudioInfo;
-import kidridicarus.common.metaagent.playercontrolleragent.PlayerControllerAgent;
+import kidridicarus.common.metarole.playercontrollerrole.PlayerControllerRole;
+import kidridicarus.story.Story;
 
 /*
  * Guide AKA Player (not actually tho - eventually this class will split into Player and others).
@@ -23,8 +23,8 @@ import kidridicarus.common.metaagent.playercontrolleragent.PlayerControllerAgent
  */
 public class Guide implements Disposable {
 	private AssetManager manager;
-	private Agency agency;
-	private PlayerControllerAgent playerController;
+	private Story story;
+	private PlayerControllerRole playerController;
 	private Eye eye;
 	private Ear ear;
 
@@ -33,17 +33,17 @@ public class Guide implements Disposable {
 	private boolean isMainMusicPlaying;
 	private Music currentSinglePlayMusic;
 
-	public Guide(AssetManager manager, Batch batch, OrthographicCamera camera, Agency agency) {
+	public Guide(AssetManager manager, Batch batch, OrthographicCamera camera, Story story) {
 		this.manager = manager;
-		this.agency = agency;
+		this.story = story;
 
 		playerController = null;
 		currentMainMusicName = "";
 		currentMainMusic = null;
 		isMainMusicPlaying = false;
 		currentSinglePlayMusic = null;
-		agency.setEar(createEar());
-		agency.setEye(createEye(batch, camera));
+		story.setEar(createEar());
+		story.setEye(createEye(batch, camera));
 	}
 
 	// create an Ear to give to Agency, so that Guide can receive sound/music callbacks from Agency
@@ -146,9 +146,9 @@ public class Guide implements Disposable {
 		return eye;
 	}
 
-	public void createPlayerAgent(ObjectProperties playerAgentProperties) {
-		playerController = (PlayerControllerAgent)
-				agency.externalCreateAgent(PlayerControllerAgent.makeAP(playerAgentProperties));
+	public void createPlayerRole(ObjectProperties playerRoleProperties) {
+		playerController = (PlayerControllerRole)
+				story.externalCreateRole(PlayerControllerRole.makeRP(playerRoleProperties));
 	}
 
 	public boolean isGameWon() {
@@ -163,20 +163,20 @@ public class Guide implements Disposable {
 		return playerController.getNextLevelFilename();
 	}
 
-	public ObjectProperties getCopyPlayerAgentProperties() {
-		return playerController.getCopyPlayerAgentProperties();
+	public ObjectProperties getCopyPlayerRoleProperties() {
+		return playerController.getCopyPlayerRoleProperties();
 	}
 
 	@Override
 	public void dispose() {
 		if(ear != null) {
 			doStopMainMusic();
-			agency.setEar(null);
+			story.setEar(null);
 			ear = null;
 		}
 		if(eye != null) {
 			eye.dispose();
-			agency.setEye(null);
+			story.setEye(null);
 		}
 	}
 }

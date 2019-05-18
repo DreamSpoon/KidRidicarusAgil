@@ -1,14 +1,14 @@
 package kidridicarus.common.powerup;
 
-import kidridicarus.agency.Agent;
-import kidridicarus.common.agent.optional.PowerupTakeAgent;
+import kidridicarus.common.role.optional.PowerupTakeRole;
+import kidridicarus.story.Role;
 
 public abstract class Powerup {
 	public abstract PowChar getPowerupCharacter();
 
-	public static boolean tryPushPowerup(Agent agent, Powerup pu) {
-		if(agent instanceof PowerupTakeAgent)
-			return ((PowerupTakeAgent)agent).onTakePowerup(pu);
+	public static boolean tryPushPowerup(Role role, Powerup pu) {
+		if(role instanceof PowerupTakeRole)
+			return ((PowerupTakeRole) role).onTakePowerup(pu);
 		return false;
 	}
 }

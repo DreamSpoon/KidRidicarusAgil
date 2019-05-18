@@ -118,7 +118,7 @@ public class UInfo {
 	 * I left the code in "long form" because I was confused when I changed it to short form (the cast to int
 	 * makes it difficult to combine the +0.5f and -0.5f .
 	 * Note: This is a wonky tile bounds conversion - it offsets the bounds inwards to get the tile coordinates.
-	 *   But it is good for converting rectangles drawn on a map to tiles for agent spawner purposes.  
+	 *   But it is good for converting rectangles drawn on a map to tiles for Role spawner purposes.
 	 */
 	public static Rectangle RectangleM2T(Rectangle bounds) {
 		int bottomX;

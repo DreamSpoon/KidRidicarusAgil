@@ -7,7 +7,6 @@ import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import kidridicarus.agency.agencychange.AgentPlaceholder;
 import kidridicarus.agency.agent.AgentDrawListener;
 import kidridicarus.agency.agent.AgentPropertyListener;
 import kidridicarus.agency.agent.AgentRemoveListener;
@@ -19,6 +18,7 @@ import kidridicarus.agency.tool.AllowOrderList.AllowOrderListIter;
 /*
  * A list of all Agents in the Agency, and their associated update listeners and draw listeners. Agents can have
  * remove listeners, which receive callback when the Agent is removed from Agency.
+ * PropertyListeners are not queued, but added immediately.
  */
 class AgencyIndex {
 	private interface AgencyChange { public void applyChange(); }
@@ -48,10 +48,10 @@ class AgencyIndex {
 			changeQ.poll().applyChange();
 	}
 
-	public void queueAddAgent(final AgentPlaceholder ap) {
+	public void queueAddAgent(final Agent agent) {
 		changeQ.add(new AgencyChange() {
 				@Override
-				public void applyChange() { allAgents.add(ap.agent); }
+				public void applyChange() { allAgents.add(agent); }
 			});
 	}
 
@@ -60,23 +60,23 @@ class AgencyIndex {
 	 * If remove listeners are present, then they must be called first to prevent altering the rest of the Agent's
 	 * state by way of removing draw, update, etc. listeners.
 	 */
-	public void queueRemoveAgent(final AgentPlaceholder ap) {
+	public void queueRemoveAgent(final Agent agent) {
 		changeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					// If other Agents are listening for remove callback then do it, and garbage collect remove
 					// listeners.
-					removeAllAgentRemoveListeners(ap.agent);
-					removeAllUpdateListeners(ap.agent);
-					removeAllDrawListeners(ap.agent);
-					removeAllAgentPropertyListeners(ap.agent);
-					allAgents.remove(ap.agent);
+					removeAllAgentRemoveListeners(agent);
+					removeAllUpdateListeners(agent);
+					removeAllDrawListeners(agent);
+					removeAllAgentPropertyListeners(agent);
+					allAgents.remove(agent);
 				}
 			});
 	}
 
 	// add a single update listener and associate it with the given Agent
-	public void queueAddUpdateListener(final AgentPlaceholder ap, final AgentUpdateListener updateListener,
+	public void queueAddUpdateListener(final Agent agent, final AgentUpdateListener updateListener,
 			final AllowOrder updateOrder) {
 		changeQ.add(new AgencyChange() {
 				@Override
@@ -92,13 +92,13 @@ class AgencyIndex {
 					allUpdateListeners.put(updateListener, updateOrder);
 					orderedUpdateListeners.add(updateListener, updateOrder);
 					// add listener to agent
-					ap.agent.updateListeners.add(updateListener);
+					agent.updateListeners.add(updateListener);
 				}
 			});
 	}
 
 	// remove a single update listener associated with the given Agent
-	public void queueRemoveUpdateListener(final AgentPlaceholder ap, final AgentUpdateListener updateListener) {
+	public void queueRemoveUpdateListener(final Agent agent, final AgentUpdateListener updateListener) {
 		changeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
@@ -113,7 +113,7 @@ class AgencyIndex {
 					// remove the listener from the list of all listeners
 					allUpdateListeners.remove(updateListener);
 					// and remove the listener from the Agent's list of listeners
-					ap.agent.updateListeners.remove(updateListener);
+					agent.updateListeners.remove(updateListener);
 				}
 			});
 	}
@@ -133,7 +133,7 @@ class AgencyIndex {
 	}
 
 	// add a single draw listener and associate it with the given Agent
-	public void queueAddDrawListener(final AgentPlaceholder ap, final AgentDrawListener drawListener,
+	public void queueAddDrawListener(final Agent agent, final AgentDrawListener drawListener,
 			final AllowOrder drawOrder) {
 		changeQ.add(new AgencyChange() {
 				@Override
@@ -149,19 +149,19 @@ class AgencyIndex {
 					allDrawListeners.put(drawListener, drawOrder);
 					orderedDrawListeners.add(drawListener, drawOrder);
 					// add listener to agent
-					ap.agent.drawListeners.add(drawListener);
+					agent.drawListeners.add(drawListener);
 				}
 			});
 	}
 
 	// remove a single draw listener associated with the given Agent
-	public void queueRemoveDrawListener(final AgentPlaceholder ap, final AgentDrawListener drawListener) {
+	public void queueRemoveDrawListener(final Agent agent, final AgentDrawListener drawListener) {
 		changeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					if(!allDrawListeners.containsKey(drawListener)) {
 						throw new IllegalArgumentException("Cannot remove draw listener because listener was not "+
-								"added, drawListener=" + drawListener + ", agent=" + ap.agent);
+								"added, drawListener=" + drawListener + ", agent=" + agent);
 					}
 					// Get the current draw order for the listener...
 					AllowOrder currentOrder = allDrawListeners.get(drawListener);
@@ -170,7 +170,7 @@ class AgencyIndex {
 					// remove the listener from the list of all listeners
 					allDrawListeners.remove(drawListener);
 					// and remove the listener from the Agent's list of listeners
-					ap.agent.drawListeners.remove(drawListener);
+					agent.drawListeners.remove(drawListener);
 				}
 			});
 	}
@@ -192,13 +192,13 @@ class AgencyIndex {
 	 * listener to itself. This is a good way to handle "dispose" functionality.
 	 * Note: AgencyIndex doesn't directly keep a list of all remove listeners, each Agent keeps their own list.
 	 */
-	public void queueAddAgentRemoveListener(final AgentPlaceholder ap, final AgentRemoveListener removeListener) {
+	public void queueAddAgentRemoveListener(final Agent agent, final AgentRemoveListener removeListener) {
 		changeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					// This Agent keeps a ref to the listener, so that this Agent can delete the listener when this
 					// Agent is removed (garbage collection).
-					ap.agent.myAgentRemoveListeners.add(removeListener);
+					agent.myAgentRemoveListeners.add(removeListener);
 					// The other Agent keeps a ref to the listener, so that the other Agent can callback this Agent
 					// when other Agent is removed (agent removal callback).
 					removeListener.otherAgent.otherAgentRemoveListeners.add(removeListener);
@@ -207,11 +207,11 @@ class AgencyIndex {
 	}
 
 	// disassociate a single listener from the given agent and other Agent
-	public void queueRemoveAgentRemoveListener(final AgentPlaceholder ap, final AgentRemoveListener removeListener) {
+	public void queueRemoveAgentRemoveListener(final Agent agent, final AgentRemoveListener removeListener) {
 		changeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
-					ap.agent.myAgentRemoveListeners.remove(removeListener);
+					agent.myAgentRemoveListeners.remove(removeListener);
 					removeListener.otherAgent.otherAgentRemoveListeners.remove(removeListener);
 				}
 			});
@@ -227,7 +227,7 @@ class AgencyIndex {
 		for(AgentRemoveListener otherListener : agent.otherAgentRemoveListeners) {
 			otherListener.callback.preRemoveAgent();
 			// since the move listener has been called, the listener itself must now be disassociated from other Agent
-			otherListener.listeningAgent.agent.myAgentRemoveListeners.remove(otherListener);
+			otherListener.listeningAgent.myAgentRemoveListeners.remove(otherListener);
 		}
 		// second, remove all of my listener references held by other agents
 		for(AgentRemoveListener myListener : agent.myAgentRemoveListeners)
@@ -236,58 +236,48 @@ class AgencyIndex {
 		agent.myAgentRemoveListeners.clear();
 	}
 
-	public void queueAddPropertyListener(final AgentPlaceholder ap, final AgentPropertyListener<?> listener,
+	public void addPropertyListener(final Agent agent, final AgentPropertyListener<?> listener,
 			final String propertyKey, final Boolean isGlobal) {
-		changeQ.add(new AgencyChange() {
-				@Override
-				public void applyChange() {
-					// if the property is global then add the property key to a global list
-					if(isGlobal) {
-						LinkedList<Agent> subList;
-						// If the property String isn't in the global list, then create an empty sub-list and add
-						// the new sub-list to the global list.
-						if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
-							subList = new LinkedList<Agent>();
-							globalPropertyKeyAgents.put(propertyKey, subList);
-						}
-						// otherwise get existing sub-list
-						else
-							subList = globalPropertyKeyAgents.get(propertyKey);
-						// add agent to sub-list for this property String, to associate the property listener to agent
-						subList.add(ap.agent);
-						// keep a list of global property keys within Agent, for removal purposes
-						ap.agent.globalPropertyKeys.add(propertyKey);
-					}
-					// add the property listener to the Agent locally
-					ap.agent.propertyListeners.put(propertyKey, listener);
-				}
-			});
+		// if the property is global then add the property key to a global list
+		if(isGlobal) {
+			LinkedList<Agent> subList;
+			// If the property String isn't in the global list, then create an empty sub-list and add
+			// the new sub-list to the global list.
+			if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
+				subList = new LinkedList<Agent>();
+				globalPropertyKeyAgents.put(propertyKey, subList);
+			}
+			// otherwise get existing sub-list
+			else
+				subList = globalPropertyKeyAgents.get(propertyKey);
+			// add agent to sub-list for this property String, to associate the property listener to agent
+			subList.add(agent);
+			// keep a list of global property keys within Agent, for removal purposes
+			agent.globalPropertyKeys.add(propertyKey);
+		}
+		// add the property listener to the Agent locally
+		agent.propertyListeners.put(propertyKey, listener);
 	}
 
-	public void queueRemovePropertyListener(final AgentPlaceholder ap, final String propertyKey) {
-		changeQ.add(new AgencyChange() {
-				@Override
-				public void applyChange() {
-					// if the property is a global property then remove it from the global property list
-					if(ap.agent.globalPropertyKeys.contains(propertyKey)) {
-						// if the property String isn't in the global list, then throw exception
-						if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
-							throw new IllegalArgumentException("Cannot remove listener for property="+propertyKey+
-									", from agent="+ap.agent);
-						}
-						// remove agent from the property sub-list
-						LinkedList<Agent> subList = globalPropertyKeyAgents.get(propertyKey);
-						subList.remove(ap.agent);
-						// remove the sub-list if it is empty, to prevent accumulating empty lists
-						if(subList.isEmpty())
-							globalPropertyKeyAgents.remove(propertyKey);
-						// remove the key from the Agent's list of global property keys
-						ap.agent.globalPropertyKeys.remove(propertyKey);
-					}
-					// remove property listener from agent locally
-					ap.agent.propertyListeners.remove(propertyKey);
-				}
-			});
+	public void removePropertyListener(final Agent agent, final String propertyKey) {
+		// if the property is a global property then remove it from the global property list
+		if(agent.globalPropertyKeys.contains(propertyKey)) {
+			// if the property String isn't in the global list, then throw exception
+			if(!globalPropertyKeyAgents.containsKey(propertyKey)) {
+				throw new IllegalArgumentException("Cannot remove listener for property="+propertyKey+
+						", from agent="+agent);
+			}
+			// remove agent from the property sub-list
+			LinkedList<Agent> subList = globalPropertyKeyAgents.get(propertyKey);
+			subList.remove(agent);
+			// remove the sub-list if it is empty, to prevent accumulating empty lists
+			if(subList.isEmpty())
+				globalPropertyKeyAgents.remove(propertyKey);
+			// remove the key from the Agent's list of global property keys
+			agent.globalPropertyKeys.remove(propertyKey);
+		}
+		// remove property listener from agent locally
+		agent.propertyListeners.remove(propertyKey);
 	}
 
 	// remove all property listeners associated with agent

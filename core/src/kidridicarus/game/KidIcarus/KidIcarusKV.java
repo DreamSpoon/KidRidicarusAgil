@@ -1,7 +1,7 @@
 package kidridicarus.game.KidIcarus;
 
 public class KidIcarusKV {
-	public class AgentClassAlias {
+	public class RoleClassAlias {
 		public static final String VAL_ANGEL_HEART = "angel_heart";
 		public static final String VAL_CHALICE_HEALTH = "chalice_health";
 		public static final String VAL_DOOR = "kid_icarus_door";

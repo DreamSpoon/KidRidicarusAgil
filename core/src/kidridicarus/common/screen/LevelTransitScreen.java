@@ -26,12 +26,12 @@ public class LevelTransitScreen implements Screen {
 	private InputProcessor oldInPr;
 	private boolean didAnythingHappen;
 	private String nextLevelFilename;
-	private ObjectProperties playerAgentProperties;
+	private ObjectProperties playerRoleProperties;
 
-	public LevelTransitScreen(MyKidRidicarus game, String nextLevelFilename, ObjectProperties playerAgentProperties) {
+	public LevelTransitScreen(MyKidRidicarus game, String nextLevelFilename, ObjectProperties playerRoleProperties) {
 		this.game = game;
 		this.nextLevelFilename = nextLevelFilename;
-		this.playerAgentProperties = playerAgentProperties;
+		this.playerRoleProperties = playerRoleProperties;
 
 		viewport = new FitViewport(CommonInfo.V_WIDTH, CommonInfo.V_HEIGHT, new OrthographicCamera());
 		stage = new Stage(viewport, game.batch);
@@ -81,7 +81,7 @@ public class LevelTransitScreen implements Screen {
 	@Override
 	public void render(float delta) {
 		if(didAnythingHappen) {
-			game.setScreen(new PlayScreen((MyKidRidicarus) game, nextLevelFilename, playerAgentProperties));
+			game.setScreen(new PlayScreen((MyKidRidicarus) game, nextLevelFilename, playerRoleProperties));
 			dispose();
 		}
 

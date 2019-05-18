@@ -5,12 +5,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import kidridicarus.agency.Agency.AgentHooks;
 import kidridicarus.agency.agent.AgentDrawListener;
 import kidridicarus.agency.agent.AgentPropertyListener;
 import kidridicarus.agency.agent.AgentRemoveListener;
 import kidridicarus.agency.agent.AgentUpdateListener;
-import kidridicarus.agency.info.AgencyKV;
 import kidridicarus.agency.tool.ObjectProperties;
 
 /*
@@ -42,8 +40,7 @@ import kidridicarus.agency.tool.ObjectProperties;
  *    class AgentEye { ... }		// "see" screen center
  *    class AgentEar { ... }		// "hear" music changes
  */
-public abstract class Agent {
-	protected final AgentHooks agentHooks;
+public class Agent {
 	List<AgentUpdateListener> updateListeners;
 	List<AgentDrawListener> drawListeners;
 	HashMap<String, AgentPropertyListener<?>> propertyListeners;
@@ -52,22 +49,15 @@ public abstract class Agent {
 	List<AgentRemoveListener> myAgentRemoveListeners;
 	// the listeners created by other Agents, to listen for removal of this Agent
 	List<AgentRemoveListener> otherAgentRemoveListeners;
+	Object userData;
 
-	protected Agent(AgentHooks agentHooks, ObjectProperties properties) {
-		this.agentHooks = agentHooks;
+	Agent() {
 		updateListeners = new LinkedList<AgentUpdateListener>();
 		drawListeners = new LinkedList<AgentDrawListener>();
 		propertyListeners = new HashMap<String, AgentPropertyListener<?>>();
 		globalPropertyKeys = new LinkedList<String>();
 		myAgentRemoveListeners = new LinkedList<AgentRemoveListener>();
 		otherAgentRemoveListeners = new LinkedList<AgentRemoveListener>();
-		// Agent class is set at constructor time and never changes
-		final String myAgentClass = properties.getString(AgencyKV.KEY_AGENT_CLASS, null);
-		agentHooks.addPropertyListener(false, AgencyKV.KEY_AGENT_CLASS,
-				new AgentPropertyListener<String>(String.class) {
-				@Override
-				public String getValue() { return myAgentClass; }
-			});
 	}
 
 	// ignore warning because type safety is maintained by getClass().equals(cls)
@@ -83,8 +73,8 @@ public abstract class Agent {
 		// the class of the property value must be equal to, or a superclass of, cls - if not then throw error
 		if(!cls.isAssignableFrom(propValue.getClass())) {
 			throw new IllegalStateException("Unable to get Agent property=("+key+") because get class=("+
-					cls.getName()+") doesn't equal property class=("+propValue.getClass().getName()+") for Agent=("+
-					this+") and property value=("+propValue+")");
+					cls.getName()+") doesn't equal property class=("+propValue.getClass().getName()+
+					") for Agent=("+this+") and property value=("+propValue+")");
 		}
 		return (T) propValue;
 	}
@@ -95,5 +85,9 @@ public abstract class Agent {
 		for(Entry<String, AgentPropertyListener<?>> iter : propertyListeners.entrySet())
 			props.put(iter.getKey(), iter.getValue().getValue());
 		return props;
+	}
+
+	public Object getUserData() {
+		return userData;
 	}
 }

@@ -14,7 +14,7 @@ import kidridicarus.common.guide.Guide;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.KeyboardMapping;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.metaagent.tiledmap.TiledMapMetaAgent;
+import kidridicarus.common.metarole.tiledmap.TiledMapMetaRole;
 import kidridicarus.common.tool.QQ;
 import kidridicarus.game.MyKidRidicarus;
 
@@ -52,14 +52,14 @@ public class PlayScreen implements Screen {
 	private float forcedUpdateFrameTimer;
 	private ObjectProperties initPlayerAP;
 
-	public PlayScreen(MyKidRidicarus game, String levelFilename, ObjectProperties playerAgentProperties) {
+	public PlayScreen(MyKidRidicarus game, String levelFilename, ObjectProperties playerRoleProperties) {
 		this.game = game;
 		this.currentLevelFilename = levelFilename;
 		this.initPlayerAP = null;
 		// save a copy of the initial player properties
-		if(playerAgentProperties != null) {
+		if(playerRoleProperties != null) {
 			this.initPlayerAP = new ObjectProperties();
-			this.initPlayerAP.putAll(playerAgentProperties);
+			this.initPlayerAP.putAll(playerRoleProperties);
 		}
 
 		useForcedUpdateFramerate = FF_USE;
@@ -74,15 +74,15 @@ public class PlayScreen implements Screen {
 		b2dr = new Box2DDebugRenderer();
 
 		// load the game map
-		game.agency.externalCreateAgent(TiledMapMetaAgent.makeAP((new TmxMapLoader()).load(levelFilename)));
+		game.story.externalCreateRole(TiledMapMetaRole.makeRP((new TmxMapLoader()).load(levelFilename)));
 		// run one update to let the map create the solid tile map and draw layer agents
-		game.agency.update(1f/60f);
+		game.story.update(1f/60f);
 		// run a second update for the map to create the other agents (e.g. player spawner, rooms)
-		game.agency.update(1f/60f);
+		game.story.update(1f/60f);
 
 		// create guide and set event listener for Agency
-		guide = new Guide(game.manager, game.batch, camera, game.agency);
-		guide.createPlayerAgent(playerAgentProperties);
+		guide = new Guide(game.manager, game.batch, camera, game.story);
+		guide.createPlayerRole(playerRoleProperties);
 	}
 
 	@Override
@@ -106,7 +106,7 @@ public class PlayScreen implements Screen {
 			newDelta = clampFrameDelta(delta);
 
 		// update the game world
-		game.agency.update(newDelta);
+		game.story.update(newDelta);
 	}
 
 	private float clampFrameDelta(float delta) {
@@ -161,16 +161,16 @@ public class PlayScreen implements Screen {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 		// draw screen
-		game.agency.draw();
+		game.story.draw();
 
 		// DEBUG: draw outlines of Box2D fixtures
 		if(QQ.isOn())
-			b2dr.render(game.agency.externalGetWorld(), camera.combined);
+			b2dr.render(game.story.externalGetWorld(), camera.combined);
 
 		// change to next level?
 		if(guide.isGameWon()) {
 			String nextLevelFilename = guide.getNextLevelFilename();
-			ObjectProperties props = guide.getCopyPlayerAgentProperties();
+			ObjectProperties props = guide.getCopyPlayerRoleProperties();
 			dispose();
 			game.setScreen(new LevelTransitScreen(game, nextLevelFilename,
 					props));
@@ -207,6 +207,6 @@ public class PlayScreen implements Screen {
 	public void dispose() {
 		guide.dispose();
 		b2dr.dispose();
-		game.agency.removeAllAgents();
+		game.story.removeAllRoles();
 	}
 }

@@ -17,17 +17,17 @@ public class CommonKV {
 	public static final String KEY_POSITION = "position";
 	public static final String KEY_BOUNDS = "bounds";
 	public static final String KEY_VELOCITY = "velocity";
-	// used by tile agent constructors (e.g. breakable brick tile blocks)
+	// used by tile Role constructors (e.g. breakable brick tile blocks)
 	public static final String KEY_TEXREGION = "tex_region";
-	public static final String KEY_PARENT_AGENT = "parent_agent";
+	public static final String KEY_PARENT_ROLE = "parent_role";
 
 	public class Player {
-		public static final String KEY_AGENT_PROPERTIES = "agent_properties";
+		public static final String KEY_ROLE_PROPERTIES = "role_properties";
 	}
 
-	public class AgentClassAlias {
-		public static final String VAL_AGENTSPAWNER = "agent_spawner";
-		public static final String VAL_AGENTSPAWN_TRIGGER = "agent_spawn_trigger";
+	public class RoleClassAlias {
+		public static final String VAL_ROLESPAWNER = "role_spawner";
+		public static final String VAL_ROLESPAWN_TRIGGER = "role_spawn_trigger";
 		public static final String VAL_DESPAWN = "despawn";
 		public static final String VAL_DRAWABLE_TILEMAP = "drawable_tiled_map";
 		public static final String VAL_KEEPALIVE_BOX = "keep_alive_box";
@@ -52,8 +52,8 @@ public class CommonKV {
 		public static final String KEY_SPAWN_MULTI_RATE = "spawn_multi_rate";
 		public static final String KEY_SPAWN_SCROLL_DIR = "spawn_scroll_direction";
 		public static final String KEY_SPAWN_MAIN = "spawn_main";
-		public static final String KEY_SPAWN_AGENTCLASS = "spawn_agent_class";
-		public static final String KEY_PLAYER_AGENTCLASS = "player_agent_class";
+		public static final String KEY_SPAWN_ROLECLASS = "spawn_role_class";
+		public static final String KEY_PLAYER_ROLECLASS = "player_role_class";
 		// something that needs to expire immediately
 		public static final String KEY_EXPIRE = "expire";
 		public static final String KEY_SPAWN_TYPE = "spawn_script";
@@ -70,9 +70,9 @@ public class CommonKV {
 	public class Script {
 		public static final String KEY_SPRITE_STATE = "sprite_state";
 		public static final String KEY_SPRITE_SIZE = "body_size";
-		// name of agent, so agent can be targeted (e.g. pipe-warp entrance targets pipe-warp exit)
+		// name of Role object, so Role object can be targeted (e.g. pipe-warp entrance targets pipe-warp exit)
 		public static final String KEY_NAME = "name";
-		// name of targeted agent
+		// name of targeted Role
 		public static final String KEY_TARGET_NAME = "target_name";
 		public static final String KEY_TARGET_LEFT = "target_left";
 		public static final String KEY_TARGET_RIGHT = "target_right";
@@ -86,7 +86,7 @@ public class CommonKV {
 		public static final String KEY_START_FRAME = "start_frame";
 	}
 
-	public class AgentMapParams {
+	public class RoleMapParams {
 		public static final String KEY_TILEDMAP = "tiled_map";
 		public static final String KEY_TILEDMAP_TILELAYER = "tiled_map_tile_layer";
 		public static final String KEY_TILEDMAP_TILELAYER_LIST = "tiled_map_tile_layer_list";
