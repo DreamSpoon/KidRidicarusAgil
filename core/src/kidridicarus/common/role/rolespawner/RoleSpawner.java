@@ -1,15 +1,15 @@
 package kidridicarus.common.role.rolespawner;
 
-import kidridicarus.agency.agent.AgentRemoveCallback;
-import kidridicarus.agency.agent.AgentUpdateListener;
+import kidridicarus.agency.Agent.AgentUpdateListener;
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.role.optional.EnableTakeRole;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 public class RoleSpawner extends CorpusRole implements EnableTakeRole {
 	private SpawnController spawnController;
@@ -41,10 +41,11 @@ public class RoleSpawner extends CorpusRole implements EnableTakeRole {
 					spawnController.update(frameTime, isEnabled);
 			}
 		});
-		// need to dispose body on Role removal
-		myAgentHooks.createAgentRemoveListener(myAgent, new AgentRemoveCallback() {
+		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
 			@Override
-			public void preRemoveAgent() { dispose(); }
+			public void preAgentRemoval() { dispose(); }
+			@Override
+			public void postAgentRemoval() {}
 		});
 	}
 

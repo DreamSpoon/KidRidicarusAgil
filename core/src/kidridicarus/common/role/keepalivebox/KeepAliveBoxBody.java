@@ -13,7 +13,7 @@ class KeepAliveBoxBody extends FollowBoxBody {
 	private static final CFBitSeq CFMASK_BITS = new CFBitSeq(true);
 
 	KeepAliveBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
-		super(parentRole, physHooks, bounds, true);
+		super(physHooks, bounds, true, parentRole);
 	}
 
 	@Override
@@ -24,10 +24,5 @@ class KeepAliveBoxBody extends FollowBoxBody {
 	@Override
 	protected CFBitSeq getMaskBits() {
 		return CFMASK_BITS;
-	}
-
-	@Override
-	protected Object getSensorBoxUserData() {
-		return this;
 	}
 }

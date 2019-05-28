@@ -5,11 +5,11 @@ import com.badlogic.gdx.math.Vector2;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.rolescript.RoleScript;
 import kidridicarus.story.rolescript.ScriptedRoleState;
+import kidridicarus.story.tool.RP_Tool;
 
 /*
  * Name: Kid Icarus Door Script

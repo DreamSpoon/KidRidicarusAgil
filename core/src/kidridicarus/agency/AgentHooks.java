@@ -2,11 +2,10 @@ package kidridicarus.agency;
 
 import java.util.LinkedList;
 
-import kidridicarus.agency.agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentUpdateListener;
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agent.AgentRemoveCallback;
-import kidridicarus.agency.agent.AgentRemoveListener;
-import kidridicarus.agency.agent.AgentUpdateListener;
 
 /*
  * Even though this class is inside Agency, it is called AgentHooks and not AgencyHooks because the Object is
@@ -23,13 +22,55 @@ public class AgentHooks {
 		this.ownerAgent = ownerAgent;
 	}
 
-	public void setUserData(Object userData) {
-		this.ownerAgent.userData = userData;
-	}
-
 	// Agent can only remove itself, if a sub-Agent needs removal then the sub-Agent must remove itself
 	public void removeThisAgent() {
 		myAgency.agencyIndex.queueRemoveAgent(ownerAgent);
+	}
+
+	public void createAgentRemovalRequirement(Agent otherAgent, boolean isOtherParent) {
+		if(isOtherParent) {
+			// ownerAgent will be removed if otherAgent is removed
+			myAgency.agencyIndex.createAgentRemovalRequirement(ownerAgent, otherAgent);
+		}
+		else {
+			// otherAgent will be removed if ownerAgent is removed
+			myAgency.agencyIndex.createAgentRemovalRequirement(otherAgent, ownerAgent);
+		}
+	}
+
+	public void destroyAgentRemovalRequirement(Agent otherAgent) {
+		myAgency.agencyIndex.destroyAgentRemovalRequirement(ownerAgent, otherAgent);
+	}
+
+	public void createAgentRemovalOrder(Agent otherAgent, boolean isOtherParent) {
+		if(isOtherParent) {
+			// ownerAgent will be removed before otherAgent
+			myAgency.agencyIndex.createAgentRemovalOrder(ownerAgent, otherAgent);
+		}
+		else {
+			// otherAgent will be removed before ownerAgent
+			myAgency.agencyIndex.createAgentRemovalOrder(otherAgent, ownerAgent);
+		}
+	}
+
+	public void destroyAgentRemovalOrder(Agent otherAgent) {
+		myAgency.agencyIndex.destroyAgentRemovalOrder(ownerAgent, otherAgent);
+	}
+
+	public AgentRemovalListener createInternalRemovalListener(AgentRemovalCallback callback) {
+		return myAgency.agencyIndex.createInternalRemovalListener(ownerAgent, callback);
+	}
+
+	public void destroyInternalRemovalListener(AgentRemovalListener removalListener) {
+		myAgency.agencyIndex.destroyInternalRemovalListener(removalListener);
+	}
+
+	public AgentRemovalListener createExternalRemovalListener(Agent otherAgent, AgentRemovalCallback callback) {
+		return myAgency.agencyIndex.createExternalRemovalListener(ownerAgent, otherAgent, callback);
+	}
+
+	public void destroyExternalRemovalListener(AgentRemovalListener removalListener) {
+		myAgency.agencyIndex.destroyExternalRemovalListener(removalListener);
 	}
 
 	public void addPropertyListener(boolean isGlobal, String propertyKey,
@@ -60,30 +101,15 @@ public class AgentHooks {
 		myAgency.agencyIndex.queueRemoveDrawListener(ownerAgent, drawListener);
 	}
 
-	/*
-	 * Returns a reference to the listener created so that the Agent can remove the listener later using the
-	 * reference.
-	 * For flexibility, each AgentRemoveListener is unique to its combination of
-	 * ( listeningAgent, otherAgent, callback ), so removal of the AgentRemoveListener requires either a
-	 * reference to the listener, or references to the 3 things mentioned above - it's just easier to return the
-	 * AgentRemoveListener, instead of requiring removeAgentRemoveListener to lookup the AgentRemoveListener
-	 * based on ( listeningAgent, otherAgent, callback ).
-	 */
-	public AgentRemoveListener createAgentRemoveListener(Agent otherAgent, AgentRemoveCallback callback) {
-		AgentRemoveListener removeListener = new AgentRemoveListener(ownerAgent, otherAgent, callback);
-		myAgency.agencyIndex.queueAddAgentRemoveListener(ownerAgent, removeListener);
-		return removeListener;
-	}
-
-	public void removeAgentRemoveListener(AgentRemoveListener removeListener) {
-		myAgency.agencyIndex.queueRemoveAgentRemoveListener(ownerAgent, removeListener);
-	}
-
 	public Agent getFirstAgentByProperty(String key, Object val) {
 		return myAgency.hookGetFirstAgentByProperty(key, val);
 	}
 
 	public LinkedList<Agent> getAgentsByProperties(String[] keys, Object[] vals) {
 		return myAgency.hookGetAgentsByProperties(keys, vals);
+	}
+
+	public void setUserData(Object userData) {
+		ownerAgent.userData = userData;
 	}
 }

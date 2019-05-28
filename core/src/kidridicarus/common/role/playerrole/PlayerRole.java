@@ -1,6 +1,6 @@
 package kidridicarus.common.role.playerrole;
 
-import kidridicarus.agency.agent.AgentRemoveCallback;
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.role.roombox.RoomBox;
@@ -12,9 +12,11 @@ public abstract class PlayerRole extends CorpusRole {
 
 	protected PlayerRole(RoleHooks roleHooks, ObjectProperties properties) {
 		super(roleHooks, properties);
-		myAgentHooks.createAgentRemoveListener(myAgent, new AgentRemoveCallback() {
+		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
 			@Override
-			public void preRemoveAgent() { dispose(); }
+			public void preAgentRemoval() { dispose(); }
+			@Override
+			public void postAgentRemoval() {}
 		});
 	}
 

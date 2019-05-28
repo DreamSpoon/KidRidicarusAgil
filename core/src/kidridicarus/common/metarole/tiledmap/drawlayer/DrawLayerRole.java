@@ -4,15 +4,15 @@ import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
-import kidridicarus.agency.agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentDrawListener;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.tool.DrawOrderAlias;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 public class DrawLayerRole extends CorpusRole {
 	private Rectangle bounds;

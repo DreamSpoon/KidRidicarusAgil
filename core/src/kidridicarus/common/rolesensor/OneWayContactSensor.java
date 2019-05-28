@@ -3,7 +3,6 @@ package kidridicarus.common.rolesensor;
 import java.util.LinkedList;
 import java.util.List;
 
-import kidridicarus.agency.Agent;
 import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.AgentContactSensor;
 import kidridicarus.story.Role;
@@ -25,20 +24,18 @@ public class OneWayContactSensor extends AgentContactSensor {
 	public void onBeginSense(AgentBodyFilter abf) {
 		if(!isBeginSensor)
 			return;
-
-		Agent agent = AgentBodyFilter.getAgentFromFilter(abf);
-		if(agent != null && agent.getUserData() instanceof Role && !contacts.contains(agent.getUserData()))
-			contacts.add((Role) agent.getUserData());
+		Role otherRole = Role.getRoleFromABF(abf);
+		if(otherRole != null && !contacts.contains(otherRole))
+			contacts.add(otherRole);
 	}
 
 	@Override
 	public void onEndSense(AgentBodyFilter abf) {
 		if(isBeginSensor)
 			return;
-
-		Agent agent = AgentBodyFilter.getAgentFromFilter(abf);
-		if(agent != null && agent.getUserData() instanceof Role && !contacts.contains(agent.getUserData()))
-			contacts.add((Role) agent.getUserData());
+		Role otherRole = Role.getRoleFromABF(abf);
+		if(otherRole != null && !contacts.contains(otherRole))
+			contacts.add(otherRole);
 	}
 
 	public List<Role> getAndResetContacts() {

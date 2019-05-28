@@ -5,8 +5,6 @@ import java.util.List;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.Agent;
-import kidridicarus.agency.AgentHooks;
-import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.metarole.tiledmap.solidlayer.SolidTiledMapRole;
 import kidridicarus.common.role.despawnbox.DespawnBox;
@@ -17,8 +15,9 @@ import kidridicarus.common.role.playerrole.PlayerRole;
 import kidridicarus.common.role.roombox.RoomBox;
 import kidridicarus.common.rolesensor.RoleContactHoldSensor;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
+import kidridicarus.story.rolebody.RoleBody;
+import kidridicarus.story.tool.RP_Tool;
 
 /*
  * Complement of the AgentBody, the Agent spine allows for better organization/coordination of movement than
@@ -26,12 +25,12 @@ import kidridicarus.story.Role;
  */
 public class BasicRoleSpine {
 	protected Role parentRole;
-	protected AgentBody body;
+	protected RoleBody roleBody;
 	protected RoleContactHoldSensor roleSensor;
 
 	public BasicRoleSpine(Role parentRole) {
 		this.parentRole = parentRole;
-		body = null;
+		roleBody = null;
 		roleSensor = null;
 	}
 
@@ -40,8 +39,8 @@ public class BasicRoleSpine {
 		return roleSensor;
 	}
 
-	public void setBody(AgentBody body) {
-		this.body = body;
+	public void setBody(RoleBody body) {
+		this.roleBody = body;
 	}
 
 	public PowerupTakeRole getTouchingPowerupTaker() {
@@ -96,19 +95,19 @@ public class BasicRoleSpine {
 			return false;
 		switch(dir) {
 			case RIGHT:
-				if(body.getVelocity().x > UInfo.VEL_EPSILON)
+				if(roleBody.getVelocity().x > UInfo.VEL_EPSILON)
 					return true;
 				break;
 			case LEFT:
-				if(body.getVelocity().x < UInfo.VEL_EPSILON)
+				if(roleBody.getVelocity().x < UInfo.VEL_EPSILON)
 					return true;
 				break;
 			case UP:
-				if(body.getVelocity().y > UInfo.VEL_EPSILON)
+				if(roleBody.getVelocity().y > UInfo.VEL_EPSILON)
 					return true;
 				break;
 			case DOWN:
-				if(body.getVelocity().y < UInfo.VEL_EPSILON)
+				if(roleBody.getVelocity().y < UInfo.VEL_EPSILON)
 					return true;
 				break;
 			default:
@@ -117,7 +116,7 @@ public class BasicRoleSpine {
 	}
 
 	// if target Agent is on side given by isOnRight then return true, otherwise return false
-	public boolean isTargetOnSide(AgentHooks hooks, Agent target, boolean isOnRight) {
+	public boolean isTargetOnSide(Agent target, boolean isOnRight) {
 		// return false if target is null or target doesn't have position
 		if(target == null || !(target.getUserData() instanceof Role))
 			return false;
@@ -127,17 +126,17 @@ public class BasicRoleSpine {
 		// do check based on side given by isOnRight
 		if(isOnRight)
 			// is other on right side of this?
-			return UInfo.M2Tx(otherPos.x) > UInfo.M2Tx(body.getPosition().x);
+			return UInfo.M2Tx(otherPos.x) > UInfo.M2Tx(roleBody.getPosition().x);
 		else
 			// is other on left side of this?
-			return UInfo.M2Tx(otherPos.x) < UInfo.M2Tx(body.getPosition().x);
+			return UInfo.M2Tx(otherPos.x) < UInfo.M2Tx(roleBody.getPosition().x);
 	}
 
 	public Vector2 getPosition() {
-		return body.getPosition();
+		return roleBody.getPosition();
 	}
 
 	public void zeroVelocity(boolean zeroX, boolean zeroY) {
-		body.zeroVelocity(zeroX, zeroY);
+		roleBody.zeroVelocity(zeroX, zeroY);
 	}
 }

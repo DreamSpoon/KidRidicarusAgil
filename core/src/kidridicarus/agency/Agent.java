@@ -5,15 +5,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import kidridicarus.agency.agent.AgentDrawListener;
 import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agent.AgentRemoveListener;
-import kidridicarus.agency.agent.AgentUpdateListener;
+import kidridicarus.agency.tool.Eye;
+import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
+import kidridicarus.agency.tool.draodgraph.DepNode;
 
 /*
- * Agents have a key-value list of properties that can be queried.
- * The list can be queried for info such as current position, facing direction, initial velocity, etc.
+ * Agents have a key-value list of properties that can be queried. The list can be queried for info such as current
+ * position, facing direction, initial velocity, etc.
+ * A userData variable is also provided, for uses similar to those of the Box2D userData variable.
+ * The userData variable is read-only outside the Agent, and read/write inside the Agent.
  *
  * TODO
  * Agents will have observable 2x2 perspective: (inward, outward) x (audio, video)
@@ -39,25 +41,35 @@ import kidridicarus.agency.tool.ObjectProperties;
  *    class AgentSpeaker { ... }	// play sounds
  *    class AgentEye { ... }		// "see" screen center
  *    class AgentEar { ... }		// "hear" music changes
+ *
+ * TODO add field for reference to owner Agency, to verify Agent
  */
 public class Agent {
+	public interface AgentUpdateListener { public void update(FrameTime frameTime); }
+	public interface AgentDrawListener { public void draw(Eye eye); }
+
+	DepNode removalNode;
+	List<AgentRemovalListener> internalRemovalListeners;
+	// listeners that this agent is using to listen for removal of another Agent
+	List<AgentRemovalListener> myExternalRemovalListeners;
+	// listeners that another agent is using to listen for removal of this Agent
+	List<AgentRemovalListener> otherExternalRemovalListeners;
 	List<AgentUpdateListener> updateListeners;
 	List<AgentDrawListener> drawListeners;
 	HashMap<String, AgentPropertyListener<?>> propertyListeners;
 	List<String> globalPropertyKeys;
-	// the listeners created by this Agent, to listen for removal of other Agents
-	List<AgentRemoveListener> myAgentRemoveListeners;
-	// the listeners created by other Agents, to listen for removal of this Agent
-	List<AgentRemoveListener> otherAgentRemoveListeners;
 	Object userData;
 
 	Agent() {
+		removalNode = null;
+		internalRemovalListeners = new LinkedList<AgentRemovalListener>();
+		myExternalRemovalListeners = new LinkedList<AgentRemovalListener>();
+		otherExternalRemovalListeners = new LinkedList<AgentRemovalListener>();
 		updateListeners = new LinkedList<AgentUpdateListener>();
 		drawListeners = new LinkedList<AgentDrawListener>();
 		propertyListeners = new HashMap<String, AgentPropertyListener<?>>();
 		globalPropertyKeys = new LinkedList<String>();
-		myAgentRemoveListeners = new LinkedList<AgentRemoveListener>();
-		otherAgentRemoveListeners = new LinkedList<AgentRemoveListener>();
+		userData = null;
 	}
 
 	// ignore warning because type safety is maintained by getClass().equals(cls)

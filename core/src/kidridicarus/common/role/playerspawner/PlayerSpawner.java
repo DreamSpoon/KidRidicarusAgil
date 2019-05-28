@@ -1,21 +1,23 @@
 package kidridicarus.common.role.playerspawner;
 
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agent.AgentRemoveCallback;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 public class PlayerSpawner extends CorpusRole {
 	public PlayerSpawner(RoleHooks roleHooks, ObjectProperties properties) {
 		super(roleHooks, properties);
 		body = new PlayerSpawnerBody(this, myPhysHooks, RP_Tool.getBounds(properties));
-		myAgentHooks.createAgentRemoveListener(myAgent, new AgentRemoveCallback() {
+		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
 				@Override
-				public void preRemoveAgent() { dispose(); }
+				public void preAgentRemoval() { dispose(); }
+				@Override
+				public void postAgentRemoval() {}
 			});
 
 		final String strName = properties.getString(CommonKV.Script.KEY_NAME, null);

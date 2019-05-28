@@ -9,9 +9,9 @@ import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.role.followbox.FollowBoxBody;
 import kidridicarus.common.role.scrollbox.ScrollBox;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 // this class does not implement DisposableAgent because this is a sub-Agent related to player Agents
 public class ScrollKillBox extends ScrollBox {
@@ -20,12 +20,12 @@ public class ScrollKillBox extends ScrollBox {
 	}
 
 	@Override
-	public FollowBoxBody createScrollBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
+	protected FollowBoxBody createScrollBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
 		return new ScrollKillBoxBody(parentRole, physHooks, bounds);
 	}
 
 	public static ObjectProperties makeRP(Vector2 position, Direction4 scrollDir) {
-		ObjectProperties ap = RP_Tool.createPointAP(CommonKV.RoleClassAlias.VAL_SCROLL_KILLBOX, position);
+		ObjectProperties ap = RP_Tool.createPointRP(CommonKV.RoleClassAlias.VAL_SCROLL_KILLBOX, position);
 		ap.put(CommonKV.KEY_DIRECTION, scrollDir);
 		return ap;
 	}

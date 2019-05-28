@@ -13,7 +13,7 @@ class ScrollKillBoxBody extends FollowBoxBody {
 	private static final CFBitSeq CFMASK_BITS = new CFBitSeq(CommonCF.Alias.ROLE_BIT);
 
 	ScrollKillBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
-		super(parentRole, physHooks, bounds, false);
+		super(physHooks, bounds, false, parentRole);
 	}
 
 	@Override
@@ -24,10 +24,5 @@ class ScrollKillBoxBody extends FollowBoxBody {
 	@Override
 	protected CFBitSeq getMaskBits() {
 		return CFMASK_BITS;
-	}
-
-	@Override
-	protected Object getSensorBoxUserData() {
-		return this;
 	}
 }

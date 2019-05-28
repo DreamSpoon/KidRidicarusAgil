@@ -18,4 +18,8 @@ public class DesktopLauncher {
 		TestContacts x = new TestContacts();
 	}
 */
+/*	public static void main (String[] arg) {
+		TestFinal x = new TestFinal();
+	}
+*/
 }

@@ -5,14 +5,14 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Disposable;
 
 import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agentbody.AgentBody;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.rolebody.RoleBody;
 
 public abstract class CorpusRole extends Role implements Disposable {
-	protected AgentBody body;
+	protected RoleBody body;
 
 	public CorpusRole(RoleHooks roleHooks, ObjectProperties properties) {
 		super(roleHooks, properties);
@@ -51,9 +51,7 @@ public abstract class CorpusRole extends Role implements Disposable {
 
 	@Override
 	public void dispose() {
-		if(body != null) {
+		if(body != null)
 			body.dispose();
-			body = null;
-		}
 	}
 }

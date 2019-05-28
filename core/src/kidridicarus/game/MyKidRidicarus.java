@@ -7,11 +7,11 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 
-import kidridicarus.common.info.CommonRoleClassList;
 import kidridicarus.common.info.CommonInfo;
+import kidridicarus.common.info.CommonRoleClassList;
 import kidridicarus.common.screen.InstructionsScreen;
-import kidridicarus.game.KidIcarus.KidIcarusRoleClassList;
 import kidridicarus.game.KidIcarus.KidIcarusAudio;
+import kidridicarus.game.KidIcarus.KidIcarusRoleClassList;
 import kidridicarus.story.Story;
 import kidridicarus.story.tool.RoleClassList;
 

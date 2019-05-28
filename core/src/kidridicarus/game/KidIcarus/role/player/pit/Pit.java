@@ -2,10 +2,9 @@ package kidridicarus.game.KidIcarus.role.player.pit;
 
 import com.badlogic.gdx.math.Vector2;
 
-import kidridicarus.agency.agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentUpdateListener;
 import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agent.AgentRemoveCallback;
-import kidridicarus.agency.agent.AgentUpdateListener;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
@@ -19,11 +18,11 @@ import kidridicarus.common.role.playerrole.PlayerRoleBody;
 import kidridicarus.common.role.playerrole.PlayerRoleSupervisor;
 import kidridicarus.common.role.roombox.RoomBox;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
 import kidridicarus.game.KidIcarus.role.player.pit.HUD.PitHUD;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 /*
  * Notes:
@@ -59,7 +58,7 @@ public class Pit extends PlayerRole implements PowerupTakeRole, ContactDmgTakeRo
 				properties.getInteger(KidIcarusKV.KEY_HEART_COUNT, null));
 		sprite = new PitSprite(myGfxHooks.getAtlas(), body.getPosition());
 		playerHUD = new PitHUD(this, myGfxHooks.getAtlas());
-		createPropertyListeners();
+		// update listeners
 		myAgentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
 				public void update(FrameTime frameTime) { brain.processContactFrame(); }
@@ -71,6 +70,7 @@ public class Pit extends PlayerRole implements PowerupTakeRole, ContactDmgTakeRo
 					((PlayerRoleBody) body).resetPrevValues();
 				}
 			});
+		// draw listeners
 		myAgentHooks.addDrawListener(CommonInfo.DrawOrder.SPRITE_TOP, new AgentDrawListener() {
 				@Override
 				public void draw(Eye eye) { eye.draw(sprite); }
@@ -79,13 +79,7 @@ public class Pit extends PlayerRole implements PowerupTakeRole, ContactDmgTakeRo
 				@Override
 				public void draw(Eye eye) { playerHUD.draw(eye); }
 			});
-		myAgentHooks.createAgentRemoveListener(myAgent, new AgentRemoveCallback() {
-				@Override
-				public void preRemoveAgent() { dispose(); }
-			});
-	}
-
-	private void createPropertyListeners() {
+		// custom property listeners
 		myAgentHooks.addPropertyListener(false, CommonKV.Script.KEY_SPRITE_SIZE,
 				new AgentPropertyListener<Vector2>(Vector2.class) {
 				@Override

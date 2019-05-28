@@ -2,16 +2,16 @@ package kidridicarus.common.role.roombox;
 
 import com.badlogic.gdx.math.Vector2;
 
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agent.AgentRemoveCallback;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 /*
  * A box with properties applicable to a space, whose properties can be queried.
@@ -46,9 +46,11 @@ public class RoomBox extends CorpusRole {
 			scrollVelocity = UInfo.P2M(scrollVelocity);
 		isScrollBoundX = properties.getBoolean(CommonKV.Room.KEY_SCROLL_BOUND_X, false);
 		isScrollBoundY = properties.getBoolean(CommonKV.Room.KEY_SCROLL_BOUND_Y, false);
-		myAgentHooks.createAgentRemoveListener(myAgent, new AgentRemoveCallback() {
+		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
 				@Override
-				public void preRemoveAgent() { dispose(); }
+				public void preAgentRemoval() { dispose(); }
+				@Override
+				public void postAgentRemoval() {}
 			});
 		final String roomMusicStr = properties.getString(CommonKV.Room.KEY_MUSIC, null);
 		if(roomMusicStr != null) {

@@ -7,8 +7,8 @@ import kidridicarus.common.rolesensor.RoleContactHoldSensor;
 import kidridicarus.common.rolespine.PlayerContactNerve;
 import kidridicarus.common.rolespine.SolidContactSpine;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
+import kidridicarus.story.tool.RP_Tool;
 
 class ShemumSpine extends SolidContactSpine {
 	private static final float WALK_VEL = 0.3f;
@@ -22,9 +22,9 @@ class ShemumSpine extends SolidContactSpine {
 
 	void doWalkMove(boolean isFacingRight) {
 		if(isFacingRight)
-			body.setVelocity(WALK_VEL, body.getVelocity().y);
+			roleBody.setVelocity(WALK_VEL, roleBody.getVelocity().y);
 		else
-			body.setVelocity(-WALK_VEL, body.getVelocity().y);
+			roleBody.setVelocity(-WALK_VEL, roleBody.getVelocity().y);
 	}
 
 	RoleContactHoldSensor createPlayerSensor() {
@@ -41,7 +41,7 @@ class ShemumSpine extends SolidContactSpine {
 		if(otherPos == null)
 			return Direction4.NONE;
 		// return horizontal direction to move to player
-		if(body.getPosition().x < otherPos.x)
+		if(roleBody.getPosition().x < otherPos.x)
 			return Direction4.RIGHT;
 		else
 			return Direction4.LEFT;

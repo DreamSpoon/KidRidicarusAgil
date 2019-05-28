@@ -4,12 +4,10 @@ import java.util.LinkedList;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Disposable;
 
 import kidridicarus.agency.Agent;
-import kidridicarus.agency.agent.AgentDrawListener;
-import kidridicarus.agency.agent.AgentRemoveCallback;
-import kidridicarus.agency.agent.AgentUpdateListener;
+import kidridicarus.agency.Agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentUpdateListener;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
@@ -30,13 +28,13 @@ import kidridicarus.common.role.scrollpushbox.ScrollPushBox;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.MoveAdvice4x2;
 import kidridicarus.common.tool.QQ;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.game.KidIcarus.KidIcarusPow;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.info.StoryKV;
+import kidridicarus.story.tool.RP_Tool;
 
-public class PlayerControllerRole extends Role implements Disposable {
+public class PlayerControllerRole extends Role {
 	private static final float SPAWN_TRIGGER_WIDTH = UInfo.P2M(UInfo.TILEPIX_X * 20);
 	private static final float SPAWN_TRIGGER_HEIGHT = UInfo.P2M(UInfo.TILEPIX_Y * 15);
 	private static final float KEEP_ALIVE_WIDTH = UInfo.P2M(UInfo.TILEPIX_X * 22);
@@ -50,6 +48,8 @@ public class PlayerControllerRole extends Role implements Disposable {
 	private PlayerRole playerRole;
 	private RoleSpawnTrigger spawnTrigger;
 	private KeepAliveBox keepAliveBox;
+	// scrollBox can be a "push box", like in Super Mario Bros 1 "ratchet scrolling", or it can be a "kill box" like
+	// in Kid Icarus 1 "bottom-of-screen kill box".
 	private ScrollBox scrollBox;
 	private MoveAdvice4x2 inputMoveAdvice;
 	private Vector2 lastViewCenter;
@@ -77,10 +77,6 @@ public class PlayerControllerRole extends Role implements Disposable {
 				@Override
 				public void draw(Eye eye) { updateCamera(); }
 			});
-		myAgentHooks.createAgentRemoveListener(myAgent, new AgentRemoveCallback() {
-				@Override
-				public void preRemoveAgent() { dispose(); }
-			});
 	}
 
 	private void createPlayerRole(ObjectProperties playerRoleProperties) {
@@ -96,6 +92,14 @@ public class PlayerControllerRole extends Role implements Disposable {
 				RoleSpawnTrigger.makeRP(getViewCenter(), SPAWN_TRIGGER_WIDTH, SPAWN_TRIGGER_HEIGHT));
 		keepAliveBox = (KeepAliveBox) myStoryHooks.createRole(
 				KeepAliveBox.makeRP(getViewCenter(), KEEP_ALIVE_WIDTH, KEEP_ALIVE_HEIGHT));
+
+		// if this PlayerControllerRole is removed, then it's sub-roles must be removed, and removed first
+		myAgentHooks.createAgentRemovalRequirement(playerRole.getAgent(), false);
+		myAgentHooks.createAgentRemovalRequirement(spawnTrigger.getAgent(), false);
+		myAgentHooks.createAgentRemovalRequirement(keepAliveBox.getAgent(), false);
+		myAgentHooks.createAgentRemovalOrder(playerRole.getAgent(), false);
+		myAgentHooks.createAgentRemovalOrder(spawnTrigger.getAgent(), false);
+		myAgentHooks.createAgentRemovalOrder(keepAliveBox.getAgent(), false);
 	}
 
 	// get user input
@@ -146,7 +150,7 @@ public class PlayerControllerRole extends Role implements Disposable {
 	}
 
 	/*
-	 * As the player moves into and out of rooms, the scroll box may need to be created / removed / changed.
+	 * As the player moves into and out of rooms, the scroll box may need to be created/modified/removed.
 	 */
 	private void checkCreateScrollBox() {
 		RoomBox currentRoom = playerRole.getCurrentRoom();
@@ -161,8 +165,12 @@ public class PlayerControllerRole extends Role implements Disposable {
 				scrollBox = null;
 			}
 			// if scroll box needs to be created and a valid scroll direction is given then create push box
-			if(scrollBox == null && scrollDir != Direction4.NONE)
+			if(scrollBox == null && scrollDir != Direction4.NONE) {
 				scrollBox = (ScrollPushBox) myStoryHooks.createRole(ScrollPushBox.makeRP(getViewCenter(), scrollDir));
+				// if this PlayerControllerRole is removed, then it's sub-roles must be removed, and removed first
+				myAgentHooks.createAgentRemovalRequirement(scrollBox.getAgent(), false);
+				myAgentHooks.createAgentRemovalOrder(scrollBox.getAgent(), false);
+			}
 		}
 		// if current room has scroll kill box property = true then create/change to scroll kill box
 		else if(currentRoom.getAgent().getProperty(CommonKV.Room.KEY_SCROLL_KILLBOX, false, Boolean.class)) {
@@ -171,8 +179,12 @@ public class PlayerControllerRole extends Role implements Disposable {
 				scrollBox = null;
 			}
 			// if scroll box needs to be created and a valid scroll direction is given then create kill box
-			if(scrollBox == null && scrollDir != Direction4.NONE)
+			if(scrollBox == null && scrollDir != Direction4.NONE) {
 				scrollBox = (ScrollKillBox) myStoryHooks.createRole(ScrollKillBox.makeRP(getViewCenter(), scrollDir));
+				// if this PlayerControllerRole is removed, then it's sub-roles must be removed, and removed first
+				myAgentHooks.createAgentRemovalRequirement(scrollBox.getAgent(), false);
+				myAgentHooks.createAgentRemovalOrder(scrollBox.getAgent(), false);
+			}
 		}
 		// need to remove a scroll box?
 		else if(scrollBox != null) {
@@ -203,7 +215,7 @@ public class PlayerControllerRole extends Role implements Disposable {
 		playerRole.removeSelf();
 		playerRole = null;
 		// create new player character properties
-		ObjectProperties props = RP_Tool.createPointAP(pc.getRoleClassAlias(),
+		ObjectProperties props = RP_Tool.createPointRP(pc.getRoleClassAlias(),
 				oldPosition.cpy().add(SAFETY_RESPAWN_OFFSET));
 		// put facing right property if needed
 		if(facingRight)
@@ -258,7 +270,7 @@ public class PlayerControllerRole extends Role implements Disposable {
 				spawner.getAgent().getProperty(CommonKV.Spawn.KEY_PLAYER_ROLECLASS, null, String.class);
 		if(initPlayClass == null)
 			return null;
-		ObjectProperties playerAP = RP_Tool.createPointAP(initPlayClass, spawnPos);
+		ObjectProperties playerAP = RP_Tool.createPointRP(initPlayClass, spawnPos);
 		if(RP_Tool.safeGetDirection4(spawner).isRight())
 			playerAP.put(CommonKV.KEY_DIRECTION, Direction4.RIGHT);
 		return (PlayerRole) myStoryHooks.createRole(playerAP);
@@ -300,20 +312,8 @@ public class PlayerControllerRole extends Role implements Disposable {
 		return playerRole.getAgent().getAllProperties();
 	}
 
-	@Override
-	public void dispose() {
-		if(scrollBox != null)
-			scrollBox.dispose();
-		if(keepAliveBox != null)
-			keepAliveBox.dispose();
-		if(spawnTrigger != null)
-			spawnTrigger.dispose();
-		if(playerRole != null)
-			playerRole.dispose();
-	}
-
 	public static ObjectProperties makeRP(ObjectProperties playerRoleProperties) {
-		ObjectProperties props = RP_Tool.createAP(CommonKV.RoleClassAlias.VAL_PLAYER_CONTROLLER);
+		ObjectProperties props = RP_Tool.createRP(CommonKV.RoleClassAlias.VAL_PLAYER_CONTROLLER);
 		props.put(CommonKV.Player.KEY_ROLE_PROPERTIES, playerRoleProperties);
 		return props;
 	}

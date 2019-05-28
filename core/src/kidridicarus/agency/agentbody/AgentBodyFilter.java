@@ -1,6 +1,7 @@
 package kidridicarus.agency.agentbody;
 
 import kidridicarus.agency.Agent;
+import kidridicarus.agency.AgentBody;
 import kidridicarus.agency.agentbody.AgentContactListener.PreSolver;
 
 public class AgentBodyFilter {

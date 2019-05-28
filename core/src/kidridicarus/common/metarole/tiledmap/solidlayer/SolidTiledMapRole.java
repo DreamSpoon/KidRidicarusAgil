@@ -6,9 +6,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Disposable;
 
-import kidridicarus.agency.agent.AgentUpdateListener;
+import kidridicarus.agency.Agent.AgentUpdateListener;
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
@@ -16,10 +16,10 @@ import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.tool.QQ;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
-public class SolidTiledMapRole extends CorpusRole implements Disposable {
+public class SolidTiledMapRole extends CorpusRole {
 	private SolidTiledMap solidMap;
 	private LinkedBlockingQueue<SolidTileChange> tileChangeQ;
 
@@ -30,7 +30,6 @@ public class SolidTiledMapRole extends CorpusRole implements Disposable {
 				properties.get(CommonKV.RoleMapParams.KEY_TILEDMAP_TILELAYER_LIST, null, List.class);
 		if(solidLayers == null || solidLayers.isEmpty())
 			throw new IllegalArgumentException("Layers array was null or empty.");
-
 		// changes are made in batches, so keep a queue of pending changes
 		tileChangeQ = new LinkedBlockingQueue<SolidTileChange>();
 		// The OTC map will create bodies with the World...
@@ -44,10 +43,16 @@ public class SolidTiledMapRole extends CorpusRole implements Disposable {
 				@Override
 				public void update(FrameTime frameTime) { doUpdate(); }
 			});
+		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
+				@Override
+				public void preAgentRemoval() { dispose(); }
+				@Override
+				public void postAgentRemoval() {}
+			});
 	}
 
 	private void doUpdate() {
-		// process change q
+		// process tile solid state changes (empty becomes solid, or solid becomes empty)
 		while(!tileChangeQ.isEmpty())
 			doChange(tileChangeQ.poll());
 	}
@@ -58,7 +63,7 @@ public class SolidTiledMapRole extends CorpusRole implements Disposable {
 				throw new IllegalStateException("Cannot add solid tile because tile already exists in map.");
 			solidMap.addTile(change.x, change.y);
 		}
-		// change from to solid non-solid
+		// change from solid to non-solid (empty)
 		else {
 			if(!solidMap.isTileExist(change.x, change.y))
 				throw new IllegalStateException("Cannot remove solid tile since tile does not already exist in map.");

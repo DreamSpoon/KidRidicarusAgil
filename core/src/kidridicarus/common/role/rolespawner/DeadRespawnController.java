@@ -1,6 +1,6 @@
 package kidridicarus.common.role.rolespawner;
 
-import kidridicarus.agency.agent.AgentRemoveCallback;
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.story.Role;
@@ -24,17 +24,20 @@ class DeadRespawnController extends SpawnController {
 			// if all spawns have died, and the spawner is not enabled, then reset so another spawn can occur 
 			if(numSpawns == numSpawnsDisposed)
 				isSpawnReset = true;
+			return;
 		}
-		else if(isSpawnAllowed()) {
-			isSpawnReset = false;
-			numSpawns++;
-			Role spawnedRole = doSpawn();
-			parentRoleHooks.agentHooksBundle.agentHooks.createAgentRemoveListener(spawnedRole.getAgent(),
-					new AgentRemoveCallback() {
-					@Override
-					public void preRemoveAgent() { numSpawnsDisposed++; }
-				});
-		}
+		if(!isSpawnAllowed())
+			return;
+		isSpawnReset = false;
+		numSpawns++;
+		Role spawnedRole = doSpawn();
+		parentRoleHooks.agentHooksBundle.agentHooks.createExternalRemovalListener(spawnedRole.getAgent(),
+				new AgentRemovalCallback() {
+				@Override
+				public void preAgentRemoval() { numSpawnsDisposed++; }
+				@Override
+				public void postAgentRemoval() {}
+			});
 	}
 
 	private boolean isSpawnAllowed() {

@@ -9,6 +9,6 @@ public class KidIcarusDoorSpine extends BasicRoleSpine {
 	}
 
 	public void setOpened(boolean isOpened) {
-		((KidIcarusDoorBody) body).setOpened(isOpened);
+		((KidIcarusDoorBody) roleBody).setOpened(isOpened);
 	}
 }

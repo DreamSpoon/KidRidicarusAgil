@@ -8,84 +8,286 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import kidridicarus.agency.agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentUpdateListener;
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agent.AgentRemoveListener;
-import kidridicarus.agency.agent.AgentUpdateListener;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
+import kidridicarus.agency.tool.draodgraph.DRAOD_Graph;
+import kidridicarus.agency.tool.draodgraph.DepNode;
+import kidridicarus.agency.tool.draodgraph.DepResolver;
 
 /*
- * A list of all Agents in the Agency, and their associated update listeners and draw listeners. Agents can have
- * remove listeners, which receive callback when the Agent is removed from Agency.
- * PropertyListeners are not queued, but added immediately.
+ * A list of all Agents in the Agency, and their associated update listeners and draw listeners.
+ * Agent removal dependency ordering is supported.
+ * In general, "create" changes are immediate and "destroy" changes are queued.
  */
 class AgencyIndex {
-	private interface AgencyChange { public void applyChange(); }
-
-	private LinkedBlockingQueue<AgencyChange> generalChangeQ;
-	private LinkedBlockingQueue<AgencyChange> updateListenerChangeQ;
+	private interface AgencyChange { void applyChange(); }
 
 	private HashSet<Agent> allAgents;
+	private LinkedBlockingQueue<AgencyChange> removeAgentChangeQ;
+	private LinkedBlockingQueue<AgencyChange> removalNodeDestroyQ;
+	// Agent removal dependency graph
+	private DRAOD_Graph agentRemovalGraph;
+	// a "lock" object to prevent concurrent modification errors in Agent removal graph
+	private boolean isResolvingRemovalGraph;
+
 	private HashMap<AgentUpdateListener, Float> allUpdateListeners;
 	private TreeMap<Float, HashSet<AgentUpdateListener>> orderedUpdateListeners;
+	private LinkedBlockingQueue<AgencyChange> updateListenerChangeQ;
 	private HashMap<AgentDrawListener, Float> allDrawListeners;
 	private TreeMap<Float, HashSet<AgentDrawListener>> orderedDrawListeners;
+	private LinkedBlockingQueue<AgencyChange> drawListenerChangeQ;
 	// sub-lists of Agents that have properties, indexed by property String
 	private HashMap<String, LinkedList<Agent>> globalPropertyKeyAgents;
 
 	AgencyIndex() {
 		allAgents = new HashSet<Agent>();
-
-		allDrawListeners = new HashMap<AgentDrawListener, Float>();
-		orderedDrawListeners = new TreeMap<Float, HashSet<AgentDrawListener>>();
-		globalPropertyKeyAgents = new HashMap<String, LinkedList<Agent>>();
-		generalChangeQ = new LinkedBlockingQueue<AgencyChange>();
+		removeAgentChangeQ = new LinkedBlockingQueue<AgencyChange>();
+		removalNodeDestroyQ = new LinkedBlockingQueue<AgencyChange>();
+		agentRemovalGraph = new DRAOD_Graph();
+		isResolvingRemovalGraph = false;
 
 		allUpdateListeners = new HashMap<AgentUpdateListener, Float>();
 		orderedUpdateListeners = new TreeMap<Float, HashSet<AgentUpdateListener>>();
 		updateListenerChangeQ = new LinkedBlockingQueue<AgencyChange>();
-	}
-
-	public void processGeneralQueue() {
-		while(!generalChangeQ.isEmpty())
-			generalChangeQ.poll().applyChange();
-	}
-
-	public void queueAddAgent(final Agent agent) {
-		generalChangeQ.add(new AgencyChange() {
-				@Override
-				public void applyChange() { allAgents.add(agent); }
-			});
+		allDrawListeners = new HashMap<AgentDrawListener, Float>();
+		orderedDrawListeners = new TreeMap<Float, HashSet<AgentDrawListener>>();
+		drawListenerChangeQ = new LinkedBlockingQueue<AgencyChange>();
+		globalPropertyKeyAgents = new HashMap<String, LinkedList<Agent>>();
 	}
 
 	/*
-	 * Remove an Agent from the index, calling remove listeners if needed.
-	 * If remove listeners are present, then they must be called first to prevent altering the rest of the Agent's
-	 * state by way of removing draw, update, etc. listeners.
+	 * When the Agent is added, a node is created in the Agent removal graph. Resolution of the node causes
+	 * Agent to be removed. Since the removal graph allows for removal requirement dependencies, removal of the
+	 * Agent may cause removal of other Agents.
+	 * Separate from the removal *requirement* dependencies, removal *order* dependencies can be created to
+	 * pre-plan how Agent removal order is handled when a cascade of Agent removals is caused by removal of a
+	 * single Agent.
 	 */
-	public void queueRemoveAgent(final Agent agent) {
-		generalChangeQ.add(new AgencyChange() {
+	void addAgent(final Agent agent) {
+		// throw error if Agents are currently being removed via resolution of Agent removal graph
+		if(isResolvingRemovalGraph)
+			throw new IllegalStateException("Cannot add Agent during resolution of Agent removal dependency graph.");
+		// before adding agent, create a diabolical plan to remove agent (mwa-ha-ha!)
+		agent.removalNode = agentRemovalGraph.createNode(new DepResolver() {
+				@Override
+				public void resolve() { doAgentRemoval(agent); }
+			});
+		// add agent
+		allAgents.add(agent);
+	}
+
+	/*
+	 * Queue removal of agent from the index. The agent must be in the All Agents list when it is queued for removal,
+	 * but the agent does not need to be in the All Agents list when the queued removal change is processed.
+	 * i.e. Agents can independently add themselves to the Agent remove queue, even if they are in a removal
+	 *      dependency chain (one is child and other is parent, etc.).
+	 * So, agent is checked for All Agents List inclusion when entering the queue, and not checked when leaving the
+	 * queue. Extra "remove Agent" change requests are ignored because possible errors are trapped here.
+	 * TODO log extra removal requests?
+	 */
+	void queueRemoveAgent(final Agent agent) {
+		if(!allAgents.contains(agent)) {
+			throw new IllegalArgumentException(
+					"Cannot remove Agent that is not in All Agents List, agent.userData="+agent.getUserData());
+		}
+		else if(agent.removalNode == null) {
+			throw new IllegalArgumentException(
+					"Cannot remove Agent that is already removed, agent.userData="+agent.getUserData());
+		}
+		removeAgentChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
-					// If other Agents are listening for remove callback then do it, and garbage collect remove
-					// listeners.
-					removeAllAgentRemoveListeners(agent);
-					removeAllUpdateListeners(agent);
-					removeAllDrawListeners(agent);
-					removeAllAgentPropertyListeners(agent);
-					allAgents.remove(agent);
+					// if Agent is marked as already removed (due to removal dependency) then exit
+					if(agent.removalNode == null)
+						return;
+					// resolve Agent removal dependencies
+					isResolvingRemovalGraph = true;
+					agentRemovalGraph.resolveOrder(agent.removalNode);
+					isResolvingRemovalGraph = false;
 				}
 			});
 	}
 
-	public void processUpdateListenerQueue() {
+	void removeAllAgents() {
+		// safely resolve the Agent removal graph
+		isResolvingRemovalGraph = true;
+		agentRemovalGraph.resolveOrder();
+		isResolvingRemovalGraph = false;
+		// destroy the graph as a batch instead of removing dependencies one-by-one
+		agentRemovalGraph.destroyGraph();
+		// the dependencies were processed as a batch instead of individually, so clear the change queue
+		removalNodeDestroyQ.clear();
+	}
+
+	private void doAgentRemoval(final Agent agent) {
+		invokePreRemovalListeners(agent);
+
+		// Queue destruction of removal dependency node instead of destroying immediately - since this
+		// operation is performed during resolution of removal graph, making destruction of node
+		// impossible at this time.
+		// Be careful with scope of final variables; "agent" is final but "agent.removalNode" is not
+		// final within this scope. "nodeToDestroy" is final within this scope, thus it saves our reference
+		// to the removal node needing destruction even though agent.removalNode will be set to null.
+		final DepNode nodeToDestroy = agent.removalNode;
+		// mark agent as removed, to prevent removing agent multiple times
+		agent.removalNode = null;
+		removalNodeDestroyQ.add(new AgencyChange() {
+				@Override
+				public void applyChange() { agentRemovalGraph.destroyNode(nodeToDestroy); }
+			});
+		removeAllUpdateListeners(agent);
+		removeAllDrawListeners(agent);
+		removeAllAgentPropertyListeners(agent);
+		allAgents.remove(agent);
+
+		invokePostRemovalListeners(agent);
+		destroyAllRemovalListeners(agent);
+	}
+
+	/*
+	 * Regarding pre- and post-removal listeners, and the internal/external callback order paradigm:
+	 *   External Agents receive the pre-removal callback first, and then agent itself receives pre-removal callback.
+	 *   The agent itself receives the post-removal callback first, and then external Agents receive pre-removal
+	 *   callback.
+	 *   This allows for two Agents to independently schedule things to avoid "who goes first" problems.
+	 *   External Agents may need to do things before the internal state of the "to be removed" agent is changed
+	 *   (internal state may be changed when agent's own removal listener is invoked), and external Agents may
+	 *   need to do things after the "to be removed" agent is removed - since removal of agent may cause changes to
+	 *   the state of Box2D World.
+	 *   Internally, the agent *should* need only the functionality of an "agentRemoved() {...}" method, and not need
+	 *   the functionality of pre- and post-removal methods. From the internal standpoint of the agent, these two
+	 *   methods are invoked concurrently - de-listing the agent does not cause internal changes to the
+	 *   agent. However, the agent's listeners are removed and the agent is de-listed from the Agency, so it is
+	 *   reasonable to include an internal post-removal method. Perhaps the agent uses the pre-removal callback to
+	 *   remove it's Box2D bodies, and uses the post-removal callback to cause external state changes based on the
+	 *   Box2D contact changes (or lack thereof).
+	 */
+
+	private void invokePreRemovalListeners(Agent agent) {
+		for(AgentRemovalListener listener : agent.otherExternalRemovalListeners)
+			listener.callback.preAgentRemoval();
+		for(AgentRemovalListener listener : agent.internalRemovalListeners)
+			listener.callback.preAgentRemoval();
+	}
+
+	// removalListeners list is not cleared because agent will be de-referenced, which will cause garbage
+	// collection of the listeners.
+	private void invokePostRemovalListeners(Agent agent) {
+		for(AgentRemovalListener listener : agent.internalRemovalListeners)
+			listener.callback.postAgentRemoval();
+		for(AgentRemovalListener listener : agent.otherExternalRemovalListeners)
+			listener.callback.postAgentRemoval();
+	}
+
+	private void destroyAllRemovalListeners(Agent agent) {
+		// destroy the listeners that this agent added to another Agent
+		for(AgentRemovalListener myListener : agent.myExternalRemovalListeners)
+			myListener.otherAgent.otherExternalRemovalListeners.remove(myListener);
+		// destroy the listeners that another Agent added to this agent
+		for(AgentRemovalListener otherListener : agent.otherExternalRemovalListeners)
+			otherListener.myAgent.myExternalRemovalListeners.remove(otherListener);
+		// destroy the listeners that this agent added to itself
+		agent.internalRemovalListeners.clear();
+	}
+
+	void processRemoveAgentQueue() {
+		while(!removeAgentChangeQ.isEmpty())
+			removeAgentChangeQ.poll().applyChange();
+		// process "destroy node" changes that were added while Agents were being removed
+		processRemovalNodeDestroyQueue();
+	}
+
+	void processRemovalNodeDestroyQueue() {
+		while(!removalNodeDestroyQ.isEmpty())
+			removalNodeDestroyQ.poll().applyChange();
+	}
+
+	// childAgent will be removed if parentAgent is removed
+	void createAgentRemovalRequirement(final Agent childAgent, final Agent parentAgent) {
+		if(isResolvingRemovalGraph) {
+			throw new IllegalStateException(
+					"Cannot create Agent removal dependency during resolution of Agent removal dependency graph.");
+		}
+		agentRemovalGraph.createRequireEdge(childAgent.removalNode, parentAgent.removalNode);
+	}
+
+	void destroyAgentRemovalRequirement(final Agent firstAgent, final Agent secondAgent) {
+		if(isResolvingRemovalGraph) {
+			throw new IllegalStateException(
+					"Cannot create Agent removal dependency during resolution of Agent removal dependency graph.");
+		}
+		agentRemovalGraph.destroyRequireEdge(firstAgent.removalNode, secondAgent.removalNode);
+	}
+
+	void createAgentRemovalOrder(final Agent childAgent, final Agent parentAgent) {
+		if(isResolvingRemovalGraph) {
+			throw new IllegalStateException(
+					"Cannot create Agent removal dependency during resolution of Agent removal dependency graph.");
+		}
+		agentRemovalGraph.createOrderEdge(childAgent.removalNode, parentAgent.removalNode);
+	}
+
+	void destroyAgentRemovalOrder(final Agent firstAgent, final Agent secondAgent) {
+		if(isResolvingRemovalGraph) {
+			throw new IllegalStateException(
+					"Cannot create Agent removal dependency during resolution of Agent removal dependency graph.");
+		}
+		agentRemovalGraph.destroyOrderEdge(firstAgent.removalNode, secondAgent.removalNode);
+	}
+
+	AgentRemovalListener createInternalRemovalListener(Agent ownerAgent, AgentRemovalCallback callback) {
+		AgentRemovalListener listener = new AgentRemovalListener(ownerAgent, null, callback);
+		ownerAgent.internalRemovalListeners.add(listener);
+		return listener;
+	}
+
+	void destroyInternalRemovalListener(AgentRemovalListener removalListener) {
+		removalListener.myAgent.internalRemovalListeners.remove(removalListener);
+	}
+
+	AgentRemovalListener createExternalRemovalListener(Agent ownerAgent, Agent otherAgent,
+			AgentRemovalCallback callback) {
+		AgentRemovalListener listener = new AgentRemovalListener(ownerAgent, otherAgent, callback);
+		ownerAgent.myExternalRemovalListeners.add(listener);
+		otherAgent.otherExternalRemovalListeners.add(listener);
+		return listener;
+	}
+
+	void destroyExternalRemovalListener(AgentRemovalListener removalListener) {
+		removalListener.myAgent.myExternalRemovalListeners.remove(removalListener);
+		removalListener.otherAgent.otherExternalRemovalListeners.remove(removalListener);
+	}
+
+	// call update listeners with update order < 0
+	void doPreStepAgentUpdates(FrameTime frameTime) {
+		doAgentUpdateIter(orderedUpdateListeners.headMap(0.0f).entrySet().iterator(), frameTime);
+	}
+
+	// call update listeners with update order >= 0
+	void doPostStepAgentUpdates(FrameTime frameTime) {
+		doAgentUpdateIter(orderedUpdateListeners.tailMap(0.0f).entrySet().iterator(), frameTime);
+	}
+
+	private void doAgentUpdateIter(Iterator<Entry<Float, HashSet<AgentUpdateListener>>> iter, FrameTime frameTime) {
+		while(iter.hasNext()) {
+			// iterate through subset of listeners at this specific update order
+			Iterator<AgentUpdateListener> subIter = iter.next().getValue().iterator();
+			while(subIter.hasNext())
+				subIter.next().update(frameTime);
+		}
+	}
+
+	void processUpdateListenerQueue() {
 		while(!updateListenerChangeQ.isEmpty())
 			updateListenerChangeQ.poll().applyChange();
 	}
 
-	// add a single update listener and associate it with the given Agent
-	public void queueAddUpdateListener(final Agent agent, final AgentUpdateListener updateListener,
+	// add a single update listener and associate it with the given agent
+	void queueAddUpdateListener(final Agent agent, final AgentUpdateListener updateListener,
 			final Float updateOrder) {
 		updateListenerChangeQ.add(new AgencyChange() {
 				@Override
@@ -108,8 +310,8 @@ class AgencyIndex {
 			});
 	}
 
-	// remove a single update listener associated with the given Agent
-	public void queueRemoveUpdateListener(final Agent agent, final AgentUpdateListener updateListener) {
+	// remove a single update listener associated with the given agent
+	void queueRemoveUpdateListener(final Agent agent, final AgentUpdateListener updateListener) {
 		updateListenerChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
@@ -133,9 +335,7 @@ class AgencyIndex {
 			});
 	}
 
-	/*
-	 * Remove all update listeners associated with the given Agent.
-	 */
+	// remove all update listeners associated with the given agent
 	private void removeAllUpdateListeners(Agent agent) {
 		for(AgentUpdateListener updateListener : agent.updateListeners) {
 			// remove the listener from the ordered treeset/hashsets
@@ -150,10 +350,26 @@ class AgencyIndex {
 		agent.updateListeners.clear();
 	}
 
-	// add a single draw listener and associate it with the given Agent
-	public void queueAddDrawListener(final Agent agent, final AgentDrawListener drawListener,
+	void doAgentDraws(Eye eye) {
+		// iterate through sorted subsets, from lowest draw order to highest draw order
+		Iterator<Entry<Float, HashSet<AgentDrawListener>>> iter = orderedDrawListeners.entrySet().iterator();
+		while(iter.hasNext()) {
+			// iterate through subset of listeners at this specific draw order
+			Iterator<AgentDrawListener> subIter = iter.next().getValue().iterator();
+			while(subIter.hasNext())
+				subIter.next().draw(eye);
+		}
+	}
+
+	void processDrawListenerQueue() {
+		while(!drawListenerChangeQ.isEmpty())
+			drawListenerChangeQ.poll().applyChange();
+	}
+
+	// add a single draw listener and associate it with the given agent
+	void queueAddDrawListener(final Agent agent, final AgentDrawListener drawListener,
 			final float drawOrder) {
-		generalChangeQ.add(new AgencyChange() {
+		drawListenerChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					if(allDrawListeners.containsKey(drawListener)) {
@@ -174,9 +390,9 @@ class AgencyIndex {
 			});
 	}
 
-	// remove a single draw listener associated with the given Agent
-	public void queueRemoveDrawListener(final Agent agent, final AgentDrawListener drawListener) {
-		generalChangeQ.add(new AgencyChange() {
+	// remove a single draw listener associated with the given agent
+	void queueRemoveDrawListener(final Agent agent, final AgentDrawListener drawListener) {
+		drawListenerChangeQ.add(new AgencyChange() {
 				@Override
 				public void applyChange() {
 					if(!allDrawListeners.containsKey(drawListener)) {
@@ -199,7 +415,7 @@ class AgencyIndex {
 			});
 	}
 
-	// remove all draw listeners associated with the given Agent
+	// remove all draw listeners associated with the given agent
 	private void removeAllDrawListeners(Agent agent) {
 		for(AgentDrawListener drawListener : agent.drawListeners) {
 			// remove the listener from the ordered treeset/hashsets
@@ -215,56 +431,7 @@ class AgencyIndex {
 		agent.drawListeners.clear();
 	}
 
-	/*
-	 * Associate a single listener with the given agent and other Agent. An Agent is allowed to add a remove
-	 * listener to itself. This is a good way to handle "dispose" functionality.
-	 * Note: AgencyIndex doesn't directly keep a list of all remove listeners, each Agent keeps their own list.
-	 */
-	public void queueAddAgentRemoveListener(final Agent agent, final AgentRemoveListener removeListener) {
-		generalChangeQ.add(new AgencyChange() {
-				@Override
-				public void applyChange() {
-					// This Agent keeps a ref to the listener, so that this Agent can delete the listener when this
-					// Agent is removed (garbage collection).
-					agent.myAgentRemoveListeners.add(removeListener);
-					// The other Agent keeps a ref to the listener, so that the other Agent can callback this Agent
-					// when other Agent is removed (agent removal callback).
-					removeListener.otherAgent.otherAgentRemoveListeners.add(removeListener);
-				}
-			});
-	}
-
-	// disassociate a single listener from the given agent and other Agent
-	public void queueRemoveAgentRemoveListener(final Agent agent, final AgentRemoveListener removeListener) {
-		generalChangeQ.add(new AgencyChange() {
-				@Override
-				public void applyChange() {
-					agent.myAgentRemoveListeners.remove(removeListener);
-					removeListener.otherAgent.otherAgentRemoveListeners.remove(removeListener);
-				}
-			});
-	}
-
-	/*
-	 * 1) Agent removal callbacks,
-	 * 2) Disassociate all listeners associated with the given Agent,
-	 * 3) Ensuring other Agent's references to these listeners are also disassociated. 
-	 */
-	private void removeAllAgentRemoveListeners(Agent agent) {
-		// first, do all Agent removal callbacks (the other Agents are listening for this Agent's removal)
-		for(AgentRemoveListener otherListener : agent.otherAgentRemoveListeners) {
-			otherListener.callback.preRemoveAgent();
-			// since the move listener has been called, the listener itself must now be disassociated from other Agent
-			otherListener.listeningAgent.myAgentRemoveListeners.remove(otherListener);
-		}
-		// second, remove all of my listener references held by other agents
-		for(AgentRemoveListener myListener : agent.myAgentRemoveListeners)
-			myListener.otherAgent.otherAgentRemoveListeners.remove(myListener);
-		// third, remove all of my listeners
-		agent.myAgentRemoveListeners.clear();
-	}
-
-	public void addPropertyListener(final Agent agent, final AgentPropertyListener<?> listener,
+	void addPropertyListener(final Agent agent, final AgentPropertyListener<?> listener,
 			final String propertyKey, final Boolean isGlobal) {
 		// if the property is global then add the property key to a global list
 		if(isGlobal) {
@@ -287,7 +454,7 @@ class AgencyIndex {
 		agent.propertyListeners.put(propertyKey, listener);
 	}
 
-	public void removePropertyListener(final Agent agent, final String propertyKey) {
+	void removePropertyListener(final Agent agent, final String propertyKey) {
 		// if the property is a global property then remove it from the global property list
 		if(agent.globalPropertyKeys.contains(propertyKey)) {
 			// if the property String isn't in the global list, then throw exception
@@ -329,7 +496,7 @@ class AgencyIndex {
 	 * Note: The Agents in the returned list may have extra properties as well, not just the given properties -
 	 * this search is an inclusive search.
 	 */
-	public LinkedList<Agent> getAgentsByProperties(String[] keys, Object[] vals, boolean firstOnly) {
+	LinkedList<Agent> getAgentsByProperties(String[] keys, Object[] vals, boolean firstOnly) {
 		if(keys.length != vals.length)
 			throw new IllegalArgumentException("keys[] and vals[] arrays are not of equal length.");
 		// if search keys array is empty then return empty list
@@ -386,65 +553,5 @@ class AgencyIndex {
 		}
 		// return true because all search properties match
 		return true;
-	}
-
-	public void doPreStepAgentUpdates(FrameTime frameTime) {
-		Iterator<Entry<Float, HashSet<AgentUpdateListener>>> iter =
-				orderedUpdateListeners.headMap(0.0f).entrySet().iterator();
-		while(iter.hasNext()) {
-			Entry<Float, HashSet<AgentUpdateListener>> pair = iter.next();
-			for(AgentUpdateListener updateListener : pair.getValue())
-				updateListener.update(frameTime);
-		}
-	}
-
-	public void doPostStepAgentUpdates(FrameTime frameTime) {
-		Iterator<Entry<Float, HashSet<AgentUpdateListener>>> iter =
-				orderedUpdateListeners.tailMap(0.0f).entrySet().iterator();
-		while(iter.hasNext()) {
-			Entry<Float, HashSet<AgentUpdateListener>> pair = iter.next();
-			for(AgentUpdateListener updateListener : pair.getValue())
-				updateListener.update(frameTime);
-		}
-	}
-
-	public void doAgentDraws(Eye eye) {
-		// iterate through sorted subsets, from lowest draw order to highest draw order
-		Iterator<Entry<Float, HashSet<AgentDrawListener>>> iter = orderedDrawListeners.entrySet().iterator();
-		while(iter.hasNext()) {
-			Entry<Float, HashSet<AgentDrawListener>> pair = iter.next();
-			// iterate through subset of listeners at this specific draw order
-			for(AgentDrawListener drawListener : pair.getValue())
-				drawListener.draw(eye);
-		}
-	}
-
-	/*
-	 * Batch remove all Agents from Agency, calling Agent remove listeners as needed.
-	 * Remove listeners are called first to prevent changing Agent's state until all remove listeners are called.
-	 * See:
-	 * https://stackoverflow.com/questions/1066589/iterate-through-a-hashmap
-	 */
-	public void removeAllAgents() {
-		for(Agent agent : allAgents) {
-			removeAllAgentRemoveListeners(agent);
-			agent.updateListeners.clear();
-			agent.drawListeners.clear();
-			agent.globalPropertyKeys.clear();
-			agent.propertyListeners.clear();
-		}
-		orderedUpdateListeners.clear();
-		allUpdateListeners.clear();
-		orderedDrawListeners.clear();
-		allDrawListeners.clear();
-		// clear all sub-lists within allPropertyAgents
-		Iterator<Entry<String, LinkedList<Agent>>> iter = globalPropertyKeyAgents.entrySet().iterator();
-		while(iter.hasNext()) {
-			Entry<String, LinkedList<Agent>> pair = iter.next();
-			LinkedList<Agent> subList = pair.getValue();
-			subList.clear();
-		}
-		globalPropertyKeyAgents.clear();
-		allAgents.clear();
 	}
 }

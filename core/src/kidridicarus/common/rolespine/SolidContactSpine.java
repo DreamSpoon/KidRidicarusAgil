@@ -20,16 +20,16 @@ public class SolidContactSpine extends BasicRoleSpine {
 	}
 
 	public boolean isOnGround() {
-		return scNerve.isOnGround(body.getBounds());
+		return scNerve.isOnGround(roleBody.getBounds());
 	}
 
 	public boolean isOnCeiling() {
-		return scNerve.isOnCeiling(body.getBounds());
+		return scNerve.isOnCeiling(roleBody.getBounds());
 	}
 
 	public boolean isSideMoveBlocked(boolean isRight) {
-		return (isRight && scNerve.isDirSolid(Direction4.RIGHT, body.getBounds())) ||
-				(!isRight && scNerve.isDirSolid(Direction4.LEFT, body.getBounds()));
+		return (isRight && scNerve.isDirSolid(Direction4.RIGHT, roleBody.getBounds())) ||
+				(!isRight && scNerve.isDirSolid(Direction4.LEFT, roleBody.getBounds()));
 	}
 
 	/*
@@ -56,6 +56,6 @@ public class SolidContactSpine extends BasicRoleSpine {
 		// if no move direction then block is impossible, so return false
 		if(moveDir == Direction4.NONE)
 			return false;
-		return scNerve.isDirSolid(moveDir, body.getBounds());
+		return scNerve.isDirSolid(moveDir, roleBody.getBounds());
 	}
 }

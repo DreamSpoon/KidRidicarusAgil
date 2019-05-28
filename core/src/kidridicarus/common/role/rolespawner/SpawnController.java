@@ -6,9 +6,9 @@ import com.badlogic.gdx.math.Vector2;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 abstract class SpawnController {
 	Role parentRole;
@@ -27,7 +27,7 @@ abstract class SpawnController {
 	}
 
 	Role doSpawn(Vector2 position) {
-		return parentRoleHooks.storyHooks.createRole(RP_Tool.createPointAP(spawnRoleClassAlias, position));
+		return parentRoleHooks.storyHooks.createRole(RP_Tool.createPointRP(spawnRoleClassAlias, position));
 	}
 
 	Role doSpawn() {

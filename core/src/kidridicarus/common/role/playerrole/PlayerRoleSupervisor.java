@@ -8,13 +8,13 @@ import kidridicarus.common.powerup.PowerupList;
 import kidridicarus.common.role.roombox.RoomBox;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.MoveAdvice4x2;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.rolescript.RoleSupervisor;
 import kidridicarus.story.rolescript.ScriptedRoleState;
 import kidridicarus.story.rolescript.RoleScript.RoleScriptHooks;
 import kidridicarus.story.rolescript.ScriptedSpriteState.SpriteState;
+import kidridicarus.story.tool.RP_Tool;
 
 public class PlayerRoleSupervisor extends RoleSupervisor {
 	private RoomBox currentRoom;

@@ -1,13 +1,11 @@
-package kidridicarus.agency.agentbody;
+package kidridicarus.agency;
 
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Fixture;
-import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.physics.box2d.FixtureDef;
 
-import kidridicarus.agency.Agent;
-import kidridicarus.agency.PhysicsHooks;
+import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.common.info.CommonCF;
 
 /*
@@ -22,53 +20,21 @@ import kidridicarus.common.info.CommonCF;
  *   -caller should explicitly invoke the create/destroy methods when manually modifying the position of AgentBody
  *   -remove the defineBody/dispose paradigm, replace with the above described create/destroy method paradigm
  */
-public class AgentBody implements Disposable {
+public class AgentBody {
 	private final Agent parentAgent;
-	protected final PhysicsHooks physHooks;
-	protected Body b2body;
-	// bounds size is for information purposes only, it is not necessarily the current dimensions of b2body
-	private Vector2 boundsSize;
+	final Body b2body;
 
-	public AgentBody(Agent parentAgent, PhysicsHooks physHooks) {
+	public AgentBody(Agent parentAgent, Body b2body) {
 		this.parentAgent = parentAgent;
-		this.physHooks = physHooks;
-		b2body = null;
-		boundsSize = new Vector2(0f, 0f);
+		this.b2body = b2body;
 	}
 
-	public Agent getParent() {
-		return parentAgent;
-	}
-
-	public Vector2 getPosition() {
-		return b2body.getPosition();
-	}
-
-	public void setBoundsSize(float width, float height) {
-		boundsSize.set(width, height);
-	}
-
-	public Rectangle getBounds() {
-		return new Rectangle(b2body.getPosition().x - boundsSize.x/2f, b2body.getPosition().y - boundsSize.y/2f,
-				boundsSize.x, boundsSize.y);
-	}
-
-	public Vector2 getVelocity() {
-		return b2body.getLinearVelocity();
-	}
-
-	public void setVelocity(Vector2 velocity) {
-		b2body.setLinearVelocity(velocity);
+	public Fixture createFixture(FixtureDef fdef) {
+		return b2body.createFixture(fdef);
 	}
 
 	public void setVelocity(float x, float y) {
 		b2body.setLinearVelocity(x, y);
-	}
-
-	// convenience method
-	public void zeroVelocity(boolean zeroX, boolean zeroY) {
-		b2body.setLinearVelocity(
-				zeroX ? 0f : b2body.getLinearVelocity().x, zeroY ? 0f : b2body.getLinearVelocity().y);
 	}
 
 	public void applyImpulse(Vector2 impulse) {
@@ -79,6 +45,15 @@ public class AgentBody implements Disposable {
 		b2body.applyForceToCenter(f, true);
 	}
 
+	public void setGravityScale(float gravityScale) {
+		b2body.setGravityScale(gravityScale);
+	}
+
+	public void setAwake(boolean isAwake) {
+		b2body.setAwake(isAwake);
+	}
+
+	// TODO this convenience method should go somewhere else
 	public void disableAllContacts() {
 		for(Fixture fix : b2body.getFixtureList()) {
 			((AgentBodyFilter) fix.getUserData()).categoryBits = CommonCF.NO_CONTACT_CFCAT;
@@ -87,11 +62,23 @@ public class AgentBody implements Disposable {
 		}
 	}
 
-	@Override
-	public void dispose() {
-		if(b2body != null) {
-			b2body.getWorld().destroyBody(b2body);
-			b2body = null;
-		}
+	public Agent getParent() {
+		return parentAgent;
+	}
+
+	public Vector2 getPosition() {
+		return b2body.getPosition();
+	}
+
+	public Vector2 getVelocity() {
+		return b2body.getLinearVelocity();
+	}
+
+	public float getMass() {
+		return b2body.getMass();
+	}
+
+	public void setBullet(boolean isBullet) {
+		b2body.setBullet(isBullet);
 	}
 }

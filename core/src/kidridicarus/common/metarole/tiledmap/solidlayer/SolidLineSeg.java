@@ -3,8 +3,8 @@ package kidridicarus.common.metarole.tiledmap.solidlayer;
 import java.util.Comparator;
 
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.physics.box2d.Body;
 
+import kidridicarus.agency.AgentBody;
 import kidridicarus.common.info.UInfo;
 
 public class SolidLineSeg {
@@ -12,7 +12,7 @@ public class SolidLineSeg {
 	int begin;	// in tile coordinates (not pixel coordinates), where begin <= end
 	int end;
 	private final int otherOffset;
-	Body body;
+	AgentBody agentBody;
 
 	public final boolean isHorizontal;
 	/*
@@ -36,7 +36,7 @@ public class SolidLineSeg {
 		this.otherOffset = otherOffset;
 		this.isHorizontal = isHorizontal;
 		this.upNormal = upNormal;
-		this.body = null;
+		this.agentBody = null;
 	}
 
 	/*

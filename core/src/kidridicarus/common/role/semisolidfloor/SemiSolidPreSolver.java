@@ -7,8 +7,8 @@ import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.AgentContactListener.PreSolver;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.info.CommonCF;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
+import kidridicarus.story.tool.RP_Tool;
 
 class SemiSolidPreSolver implements PreSolver {
 	private AgentBodyFilter myFilter;

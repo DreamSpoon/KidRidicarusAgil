@@ -4,23 +4,22 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.PhysicsHooks;
-import kidridicarus.agency.agent.AgentRemoveCallback;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.role.followbox.FollowBox;
 import kidridicarus.common.role.followbox.FollowBoxBody;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 public abstract class ScrollBox extends FollowBox {
 	private static final float SHORT_DIM = UInfo.P2M(4f);
 	private static final float LONG_DIM = UInfo.P2M(32f);
 	private static final float OFFSET = UInfo.P2M(10f);
 
-	public abstract FollowBoxBody createScrollBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds);
+	protected abstract FollowBoxBody createScrollBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds);
 
 	private Direction4 scrollDir;
 
@@ -46,15 +45,9 @@ public abstract class ScrollBox extends FollowBox {
 		}
 		Vector2 pos = RP_Tool.getCenter(properties);
 		body = createScrollBoxBody(this, myPhysHooks, new Rectangle(pos.x, pos.y, width, height));
-		myAgentHooks.createAgentRemoveListener(myAgent, new AgentRemoveCallback() {
-				@Override
-				public void preRemoveAgent() { dispose(); }
-			});
 	}
 
-	/*
-	 * Get view center, add offset based on scroll direction, set target from offset position.
-	 */
+	// get view center, add offset based on scroll direction, and set target from offset position
 	@Override
 	public void setTarget(Vector2 position) {
 		Vector2 offsetCenter = position.cpy();

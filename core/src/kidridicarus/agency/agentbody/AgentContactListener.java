@@ -87,12 +87,12 @@ public class AgentContactListener implements ContactListener {
 	@Override
 	public void postSolve(Contact contact, ContactImpulse impulse) {
 		int hashAB = Objects.hash(contact.getFixtureA(), contact.getFixtureB());
-		Boolean wasToucing = allContacts.get(hashAB);
-		if(!wasToucing && contact.isTouching()) {
+		Boolean wasTouching = allContacts.get(hashAB);
+		if(!wasTouching && contact.isTouching()) {
 			allContacts.put(hashAB, true);
 			actualBeginContact(contact);
 		}
-		else if(wasToucing && !contact.isTouching()) {
+		else if(wasTouching && !contact.isTouching()) {
 			allContacts.put(hashAB, false);
 			actualEndContact(contact);
 		}

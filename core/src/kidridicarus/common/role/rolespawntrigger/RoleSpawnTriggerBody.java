@@ -6,27 +6,15 @@ import kidridicarus.agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.role.followbox.FollowBoxBody;
-import kidridicarus.common.role.optional.EnableTakeRole;
 import kidridicarus.common.rolesensor.OneWayContactSensor;
-import kidridicarus.story.Role;
 
 class RoleSpawnTriggerBody extends FollowBoxBody {
 	private static final CFBitSeq CFCAT_BITS = new CFBitSeq(CommonCF.Alias.SPAWNTRIGGER_BIT);
 	private static final CFBitSeq CFMASK_BITS = new CFBitSeq(true);
 
-	private OneWayContactSensor beginContactSensor;
-	private OneWayContactSensor endContactSensor;
-
-	RoleSpawnTriggerBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
-		super(parentRole, physHooks, bounds, true);
-		beginContactSensor = new OneWayContactSensor(parentRole, true);
-		endContactSensor = new OneWayContactSensor(parentRole, false);
-		beginContactSensor.chainTo(endContactSensor);
-	}
-
-	SpawnTriggerFrameInput processFrame() {
-		return new SpawnTriggerFrameInput(beginContactSensor.getOnlyAndResetContacts(EnableTakeRole.class),
-				endContactSensor.getOnlyAndResetContacts(EnableTakeRole.class));
+	RoleSpawnTriggerBody(PhysicsHooks physHooks, Rectangle bounds,
+			OneWayContactSensor beginContactSensor) {
+		super(physHooks, bounds, true, beginContactSensor);
 	}
 
 	@Override
@@ -37,10 +25,5 @@ class RoleSpawnTriggerBody extends FollowBoxBody {
 	@Override
 	protected CFBitSeq getMaskBits() {
 		return CFMASK_BITS;
-	}
-
-	@Override
-	protected Object getSensorBoxUserData() {
-		return beginContactSensor;
 	}
 }

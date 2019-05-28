@@ -2,9 +2,9 @@ package kidridicarus.game.KidIcarus.role.other.kidicarusdoor;
 
 import kidridicarus.common.role.playerrole.PlayerRole;
 import kidridicarus.common.role.playerspawner.PlayerSpawner;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 class KidIcarusDoorBrain {
 	private KidIcarusDoor parent;

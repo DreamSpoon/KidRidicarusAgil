@@ -14,7 +14,7 @@ import kidridicarus.common.info.UInfo;
 import kidridicarus.common.role.playerrole.PlayerRoleBody;
 import kidridicarus.common.rolesensor.RoleContactHoldSensor;
 import kidridicarus.common.rolesensor.SolidContactSensor;
-import kidridicarus.common.tool.B2DFactory;
+import kidridicarus.common.tool.ABodyFactory;
 import kidridicarus.story.Role;
 import kidridicarus.story.rolescript.ScriptedBodyState;
 
@@ -52,7 +52,7 @@ class PitBody extends PlayerRoleBody {
 
 	PitBody(Role parentRole, PhysicsHooks physHooks, Vector2 position, Vector2 velocity, boolean isDuckingForm,
 			SolidContactSensor solidSensor, RoleContactHoldSensor roleSensor) {
-		super(parentRole, physHooks, position, velocity);
+		super(physHooks, position, velocity);
 		this.solidSensor = solidSensor;
 		this.roleSensor = roleSensor;
 		this.isDuckingForm = isDuckingForm;
@@ -62,15 +62,15 @@ class PitBody extends PlayerRoleBody {
 
 	private void defineBody(Rectangle bounds, Vector2 velocity) {
 		// dispose the old body if it exists
-		if(b2body != null)
-			physHooks.destroyBody(b2body);
+		if(agentBody != null)
+			physHooks.destroyBody(agentBody);
 
 		if(isDuckingForm)
 			setBoundsSize(DUCKING_BODY_WIDTH, DUCKING_BODY_HEIGHT);
 		else
 			setBoundsSize(STAND_BODY_WIDTH, STAND_BODY_HEIGHT);
-		b2body = B2DFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()), velocity);
-		b2body.setGravityScale(GRAVITY_SCALE);
+		agentBody = ABodyFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()), velocity);
+		agentBody.setGravityScale(GRAVITY_SCALE);
 		createFixtures();
 		resetPrevValues();
 	}
@@ -79,20 +79,20 @@ class PitBody extends PlayerRoleBody {
 		// create main fixture
 		FixtureDef fdef = new FixtureDef();
 		fdef.friction = FRICTION;
-		B2DFactory.makeBoxFixture(b2body, fdef, MAINBODY_CFCAT, MAINBODY_CFMASK, this,
+		ABodyFactory.makeBoxFixture(agentBody, fdef, MAINBODY_CFCAT, MAINBODY_CFMASK, this,
 				getBounds().width, getBounds().height);
 
 		// create Role sensor fixture
 		if(isRoleSensorEnabled) {
-			roleSensorFixture = B2DFactory.makeSensorBoxFixture(b2body, RS_ENABLED_CFCAT, RS_ENABLED_CFMASK,
+			roleSensorFixture = ABodyFactory.makeSensorBoxFixture(agentBody, RS_ENABLED_CFCAT, RS_ENABLED_CFMASK,
 					roleSensor, getBounds().width, getBounds().height);
 		}
 		else {
-			roleSensorFixture = B2DFactory.makeSensorBoxFixture(b2body, RS_DISABLED_CFCAT, RS_DISABLED_CFMASK,
+			roleSensorFixture = ABodyFactory.makeSensorBoxFixture(agentBody, RS_DISABLED_CFCAT, RS_DISABLED_CFMASK,
 					roleSensor, getBounds().width, getBounds().height);
 		}
 		// create on ground sensor fixture
-		B2DFactory.makeSensorBoxFixture(b2body, GROUND_SENSOR_CFCAT, GROUND_SENSOR_CFMASK, solidSensor,
+		ABodyFactory.makeSensorBoxFixture(agentBody, GROUND_SENSOR_CFCAT, GROUND_SENSOR_CFMASK, solidSensor,
 				FOOT_WIDTH, FOOT_HEIGHT, new Vector2(0f, -getBounds().height/2f));
 	}
 
@@ -111,20 +111,20 @@ class PitBody extends PlayerRoleBody {
 		}
 		if(!sbState.position.epsilonEquals(getPosition(), UInfo.POS_EPSILON))
 			defineBody(new Rectangle(sbState.position.x, sbState.position.y, 0f, 0f), new Vector2(0f, 0f));
-		b2body.setGravityScale(sbState.gravityFactor * GRAVITY_SCALE);
+		agentBody.setGravityScale(sbState.gravityFactor * GRAVITY_SCALE);
 		// Body may "fall asleep" while no activity, also while gravityScale was zero,
 		// wake it up so that gravity functions again.
-		b2body.setAwake(true);
+		agentBody.setAwake(true);
 	}
 
 	void applyDead() {
 		allowOnlyDeadContacts();
-		b2body.setGravityScale(0f);
+		agentBody.setGravityScale(0f);
 	}
 
 	private void allowOnlyDeadContacts() {
 		// disable all, and...
-		disableAllContacts();
+		agentBody.disableAllContacts();
 		// ... re-enable the needed agent contact sensor bits
 		((AgentBodyFilter) roleSensorFixture.getUserData()).categoryBits = RS_DISABLED_CFCAT;
 		((AgentBodyFilter) roleSensorFixture.getUserData()).maskBits = RS_DISABLED_CFMASK;
@@ -137,16 +137,16 @@ class PitBody extends PlayerRoleBody {
 		// if currently ducking and instructed to change to standing form...
 		if(this.isDuckingForm && !isDuckingForm) {
 			this.isDuckingForm = isDuckingForm;
-			newPos = b2body.getPosition().cpy().add(DUCK_TO_STAND_OFFSET);
+			newPos = agentBody.getPosition().cpy().add(DUCK_TO_STAND_OFFSET);
 		}
 		// if currently standing and instructed to change to ducking form...
 		else if(!this.isDuckingForm && isDuckingForm) {
 			this.isDuckingForm = isDuckingForm;
-			newPos = b2body.getPosition().cpy().sub(DUCK_TO_STAND_OFFSET);
+			newPos = agentBody.getPosition().cpy().sub(DUCK_TO_STAND_OFFSET);
 		}
 		// if new position needs to be set then redefine body at new position
 		if(newPos != null)
-			defineBody(new Rectangle(newPos.x, newPos.y, 0f, 0f), b2body.getLinearVelocity());
+			defineBody(new Rectangle(newPos.x, newPos.y, 0f, 0f), agentBody.getVelocity());
 	}
 
 	boolean isDuckingForm() {

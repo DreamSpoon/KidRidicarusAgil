@@ -6,8 +6,8 @@ import com.badlogic.gdx.math.Vector2;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.role.followbox.FollowBox;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 public class KeepAliveBox extends FollowBox {
 	public KeepAliveBox(RoleHooks roleHooks, ObjectProperties properties) {

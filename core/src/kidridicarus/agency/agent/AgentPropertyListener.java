@@ -7,14 +7,8 @@ package kidridicarus.agency.agent;
  * getValue.
  */
 public abstract class AgentPropertyListener<T> {
-	private final Class<T> clsT;
-
 	public abstract T getValue();
-	public Class<T> getValueClass() {
-		return clsT;
-	}
-
-	protected AgentPropertyListener(Class<T> clsT) {
-		this.clsT = clsT;
-	}
+	private final Class<T> clsT;
+	public Class<T> getValueClass() { return clsT; }
+	protected AgentPropertyListener(Class<T> clsT) { this.clsT = clsT; }
 }

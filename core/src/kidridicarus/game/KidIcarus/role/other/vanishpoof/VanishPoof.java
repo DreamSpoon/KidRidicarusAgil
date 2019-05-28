@@ -3,18 +3,18 @@ package kidridicarus.game.KidIcarus.role.other.vanishpoof;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
-import kidridicarus.agency.agent.AgentDrawListener;
-import kidridicarus.agency.agent.AgentUpdateListener;
+import kidridicarus.agency.Agent.AgentDrawListener;
+import kidridicarus.agency.Agent.AgentUpdateListener;
 import kidridicarus.agency.agentsprite.SpriteFrameInput;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.role.general.CorpusRole;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.common.tool.SprFrameTool;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 public class VanishPoof extends CorpusRole {
 	private static final float POOF_TIME = 2/5f;
@@ -57,7 +57,7 @@ public class VanishPoof extends CorpusRole {
 	}
 
 	public static ObjectProperties makeRP(Vector2 position, boolean isBig) {
-		ObjectProperties props = RP_Tool.createPointAP(KidIcarusKV.RoleClassAlias.VAL_VANISH_POOF, position);
+		ObjectProperties props = RP_Tool.createPointRP(KidIcarusKV.RoleClassAlias.VAL_VANISH_POOF, position);
 		props.put(KidIcarusKV.KEY_IS_BIG, isBig);
 		return props;
 	}

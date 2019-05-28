@@ -3,7 +3,7 @@ package kidridicarus.common.role.rolespawner;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
-import kidridicarus.agency.agent.AgentRemoveCallback;
+import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
@@ -11,9 +11,9 @@ import kidridicarus.common.info.UInfo;
 import kidridicarus.common.metarole.tiledmap.solidlayer.SolidTiledMapRole;
 import kidridicarus.common.role.rolespawntrigger.RoleSpawnTrigger;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.tool.RP_Tool;
 
 class MultiSpawnController extends SpawnController {
 	private RoleSpawnerBody body;
@@ -63,10 +63,12 @@ class MultiSpawnController extends SpawnController {
 					spawnedRole = doSpawn();
 				else
 					spawnedRole = doSpawn(scrollSpawnPos);
-				parentRoleHooks.agentHooksBundle.agentHooks.createAgentRemoveListener(spawnedRole.getAgent(),
-						new AgentRemoveCallback() {
+				parentRoleHooks.agentHooksBundle.agentHooks.createExternalRemovalListener(spawnedRole.getAgent(),
+						new AgentRemovalCallback() {
 						@Override
-						public void preRemoveAgent() { numSpawnsDisposed++; }
+						public void preAgentRemoval() { numSpawnsDisposed++; }
+						@Override
+						public void postAgentRemoval() {}
 					});
 			}
 		}

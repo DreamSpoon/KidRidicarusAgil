@@ -5,17 +5,17 @@ import java.util.List;
 
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.EdgeShape;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
 import com.badlogic.gdx.utils.Disposable;
 
+import kidridicarus.agency.AgentBody;
 import kidridicarus.agency.PhysicsHooks;
 import kidridicarus.agency.agentbody.AgentBodyFilter;
 import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.tool.B2DFactory;
+import kidridicarus.common.tool.ABodyFactory;
 
 /*
  * Title: Solid Orthogonal Tile Map
@@ -215,7 +215,7 @@ public class SolidTiledMap implements Disposable {
 			Iterator<SolidLineSeg> segIter = hLines[y].getIterator();
 			while(segIter.hasNext()) {
 				SolidLineSeg seg = segIter.next();
-				seg.body = defineHLineBody(y, seg);
+				seg.agentBody = defineHLineBody(y, seg);
 			}
 		}
 
@@ -225,26 +225,26 @@ public class SolidTiledMap implements Disposable {
 			Iterator<SolidLineSeg> segIter = vLines[x].getIterator();
 			while(segIter.hasNext()) {
 				SolidLineSeg seg = segIter.next();
-				seg.body = defineVLineBody(x, seg);
+				seg.agentBody = defineVLineBody(x, seg);
 			}
 		}
 	}
 
-	private Body defineHLineBody(int yRow, SolidLineSeg seg) {
+	private AgentBody defineHLineBody(int yRow, SolidLineSeg seg) {
 		// Add +1 to end, because the line segment ends on the right side of end.
 		// Consider the case where the segment is one wide. Then seg.begin would equal seg.end.
 		// So we need to add one.
 		return defineLineBody(seg.begin, yRow, seg.end+1, yRow, seg);
 	}
 
-	private Body defineVLineBody(int xCol, SolidLineSeg seg) {
+	private AgentBody defineVLineBody(int xCol, SolidLineSeg seg) {
 		return defineLineBody(xCol, seg.begin, xCol, seg.end+1, seg);
 	}
 
-	private Body defineLineBody(int startX, int startY, int endX, int endY, SolidLineSeg seg) {
+	private AgentBody defineLineBody(int startX, int startY, int endX, int endY, SolidLineSeg seg) {
 		FixtureDef fdef;
 		EdgeShape edgeShape;
-		Body body = B2DFactory.makeStaticBody(physHooks, UInfo.VectorP2M(startX * tileWidthInPixels,
+		AgentBody agentBody = ABodyFactory.makeStaticBody(physHooks, UInfo.VectorP2M(startX * tileWidthInPixels,
 				startY * tileHeightInPixels));
 
 		edgeShape = new EdgeShape();
@@ -252,10 +252,10 @@ public class SolidTiledMap implements Disposable {
 				UInfo.P2M((endY - startY) * tileHeightInPixels));
 		fdef = new FixtureDef();
 		fdef.shape = edgeShape;
-		body.createFixture(fdef).setUserData(
+		agentBody.createFixture(fdef).setUserData(
 				new AgentBodyFilter(new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT), new CFBitSeq(true), seg));
 
-		return body;
+		return agentBody;
 	}
 
 	/*
@@ -369,21 +369,21 @@ public class SolidTiledMap implements Disposable {
 		if(higherSeg != null && higherSeg.begin == x+1 && higherSeg.upNormal == upNormal) {
 			newSeg.end = higherSeg.end;
 			// destroy old right segment
-			physHooks.destroyBody(higherSeg.body);
+			physHooks.destroyBody(higherSeg.agentBody);
 			horvLines[y].remove(higherSeg);
 		}
 		// if adjacency on left, and the upNormal of the left seg matches the new seg, then join with left seg
 		if(floorSeg != null && floorSeg.end == x-1 && floorSeg.upNormal == upNormal) {
 			newSeg.begin = floorSeg.begin;
 			// destroy old left segment
-			physHooks.destroyBody(floorSeg.body);
+			physHooks.destroyBody(floorSeg.agentBody);
 			horvLines[y].remove(floorSeg);
 		}
 
 		if(isHorizontal)
-			newSeg.body = defineHLineBody(y, newSeg);
+			newSeg.agentBody = defineHLineBody(y, newSeg);
 		else
-			newSeg.body = defineVLineBody(y, newSeg);
+			newSeg.agentBody = defineVLineBody(y, newSeg);
 		horvLines[y].add(newSeg);
 	}
 
@@ -415,7 +415,7 @@ public class SolidTiledMap implements Disposable {
 			throw new IllegalStateException("Cannot remove line segment (or portion thereof) that does not exist.");
 
 		// destroy the original lineSeg, and new segments might be created later
-		physHooks.destroyBody(floorSeg.body);
+		physHooks.destroyBody(floorSeg.agentBody);
 		horvLines[y].remove(floorSeg);
 
 		leftBegin = floorSeg.begin;
@@ -426,18 +426,18 @@ public class SolidTiledMap implements Disposable {
 		if(leftBegin <= leftEnd) {
 			newSeg = new SolidLineSeg(leftBegin, leftEnd, y, floorSeg.isHorizontal, floorSeg.upNormal);
 			if(isHorizontal)
-				newSeg.body = defineHLineBody(y, newSeg);
+				newSeg.agentBody = defineHLineBody(y, newSeg);
 			else
-				newSeg.body = defineVLineBody(y, newSeg);
+				newSeg.agentBody = defineVLineBody(y, newSeg);
 			horvLines[y].add(newSeg);
 		}
 		// need to create new lineSeg on right?
 		if(rightBegin <= rightEnd) {
 			newSeg = new SolidLineSeg(rightBegin, rightEnd, y, floorSeg.isHorizontal, floorSeg.upNormal);
 			if(isHorizontal)
-				newSeg.body = defineHLineBody(y, newSeg);
+				newSeg.agentBody = defineHLineBody(y, newSeg);
 			else
-				newSeg.body = defineVLineBody(y, newSeg);
+				newSeg.agentBody = defineVLineBody(y, newSeg);
 			horvLines[y].add(newSeg);
 		}
 	}
@@ -455,7 +455,7 @@ public class SolidTiledMap implements Disposable {
 			for(int y=0; y<bTileMap.getHeight()+1; y++) {
 				iter = hLines[y].getIterator();
 				while(iter.hasNext())
-					physHooks.destroyBody(iter.next().body);
+					physHooks.destroyBody(iter.next().agentBody);
 			}
 		}
 		if(vLines != null) {
@@ -463,7 +463,7 @@ public class SolidTiledMap implements Disposable {
 			for(int x=0; x<bTileMap.getWidth()+1; x++) {
 				iter = vLines[x].getIterator();
 				while(iter.hasNext())
-					physHooks.destroyBody(iter.next().body);
+					physHooks.destroyBody(iter.next().agentBody);
 			}
 		}
 	}

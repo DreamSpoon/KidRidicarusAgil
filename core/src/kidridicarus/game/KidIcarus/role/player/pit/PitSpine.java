@@ -34,23 +34,23 @@ class PitSpine extends PlayerSpine {
 
 	void applyStopMove() {
 		// if moving right...
-		if(body.getVelocity().x > MIN_WALK_VEL)
+		if(roleBody.getVelocity().x > MIN_WALK_VEL)
 			applyHorizontalImpulse(true, -STOPMOVE_XIMP);
 		// if moving left...
-		else if(body.getVelocity().x < -MIN_WALK_VEL)
+		else if(roleBody.getVelocity().x < -MIN_WALK_VEL)
 			applyHorizontalImpulse(false, -STOPMOVE_XIMP);
 		// not moving right or left fast enough, set horizontal velocity to zero to avoid wobbling
 		else
-			body.setVelocity(0f, body.getVelocity().y);
+			roleBody.setVelocity(0f, roleBody.getVelocity().y);
 	}
 
 	void applyJumpForce(float forceTimer, float jumpForceDuration) {
 		if(forceTimer < jumpForceDuration)
-			body.applyForce(new Vector2(0f, JUMPUP_FORCE * forceTimer / jumpForceDuration));
+			roleBody.applyForce(new Vector2(0f, JUMPUP_FORCE * forceTimer / jumpForceDuration));
 	}
 
 	void applyJumpVelocity() {
-		body.setVelocity(body.getVelocity().x, JUMPUP_CONSTVEL);
+		roleBody.setVelocity(roleBody.getVelocity().x, JUMPUP_CONSTVEL);
 	}
 
 	boolean isStandingStill() {
@@ -58,32 +58,32 @@ class PitSpine extends PlayerSpine {
 	}
 
 	void checkDoBodySizeChange(boolean isNextDucking) {
-		boolean isCurrentlyDucking = ((PitBody) body).isDuckingForm();
-		boolean isSolidTileAbove = isMapTileSolid(UInfo.VectorM2T(body.getPosition()).add(0, 1));
+		boolean isCurrentlyDucking = ((PitBody) roleBody).isDuckingForm();
+		boolean isSolidTileAbove = isMapTileSolid(UInfo.VectorM2T(roleBody.getPosition()).add(0, 1));
 		if(isCurrentlyDucking && !isNextDucking && !isSolidTileAbove)
-			((PitBody) body).setDuckingForm(false);
+			((PitBody) roleBody).setDuckingForm(false);
 		else if(!isCurrentlyDucking && isNextDucking)
-			((PitBody) body).setDuckingForm(true);
+			((PitBody) roleBody).setDuckingForm(true);
 	}
 
 	boolean isHeadInTile() {
-		return isMapTileSolid(UInfo.VectorM2T(body.getPosition()).add(0, 1));
+		return isMapTileSolid(UInfo.VectorM2T(roleBody.getPosition()).add(0, 1));
 	}
 
 	boolean isWalkingRight() {
-		return body.getVelocity().x > MIN_WALK_VEL;
+		return roleBody.getVelocity().x > MIN_WALK_VEL;
 	}
 
 	boolean isWalkingLeft() {
-		return body.getVelocity().x < -MIN_WALK_VEL;
+		return roleBody.getVelocity().x < -MIN_WALK_VEL;
 	}
 
 	void applyDead() {
-		((PitBody) body).applyDead();
-		body.setVelocity(DEAD_VEL);
+		((PitBody) roleBody).applyDead();
+		roleBody.setVelocity(DEAD_VEL);
 	}
 
 	public void useScriptedBodyState(ScriptedBodyState scriptedBodyState) {
-		((PitBody) body).useScriptedBodyState(scriptedBodyState);
+		((PitBody) roleBody).useScriptedBodyState(scriptedBodyState);
 	}
 }

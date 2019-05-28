@@ -12,8 +12,8 @@ import kidridicarus.agency.agentbody.AgentContactSensor;
 import kidridicarus.common.metarole.tiledmap.solidlayer.SolidLineSeg;
 import kidridicarus.common.role.optional.SolidRole;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.common.tool.RP_Tool;
 import kidridicarus.story.Role;
+import kidridicarus.story.tool.RP_Tool;
 
 public class SolidContactSensor extends AgentContactSensor {
 	private LinkedList<SolidLineSeg> lineSegContacts;

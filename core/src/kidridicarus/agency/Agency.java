@@ -1,9 +1,11 @@
 package kidridicarus.agency;
 
+import java.util.HashSet;
 import java.util.LinkedList;
 
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.utils.Disposable;
 
@@ -55,11 +57,11 @@ public class Agency implements Disposable {
 	Eye myEye;
 	EarPlug earplug;
 	AgencyIndex agencyIndex;
-	private PhysicsHooks panPhysHooks;
 	private GfxHooks panGfxHooks;
 	private AudioHooks panAudioHooks;
 	// how much time has passed (via updates) since this Agency was constructed?
 	private float globalTimer;
+	private HashSet<AgentBody> destroyedBodies = new HashSet<AgentBody>();
 
 	public Agency(TextureAtlas atlas) {
 		panWorld = new World(new Vector2(0, -10f), true);
@@ -69,7 +71,6 @@ public class Agency implements Disposable {
 		myEye = null;
 		earplug = new EarPlug();
 		agencyIndex = new AgencyIndex();
-		panPhysHooks = new PhysicsHooks(this);
 		panGfxHooks = new GfxHooks(this);
 		panAudioHooks = new AudioHooks(this);
 		globalTimer = 0f;
@@ -88,15 +89,29 @@ public class Agency implements Disposable {
 
 		// call update listeners with update order >= 0
 		agencyIndex.doPostStepAgentUpdates(new FrameTime(timeDelta, globalTimer));
-		// apply changes
-		agencyIndex.processGeneralQueue();
+		// process update listener queue before general queue, because general queue includes Agent removal
 		agencyIndex.processUpdateListenerQueue();
+		agencyIndex.processDrawListenerQueue();
+		agencyIndex.processRemovalNodeDestroyQueue();
+		agencyIndex.processRemoveAgentQueue();
 	}
 
 	public AgentHooksBundle createAgentHooksBundle() {
 		Agent newAgent = new Agent();
-		agencyIndex.queueAddAgent(newAgent);
-		return new AgentHooksBundle(newAgent, new AgentHooks(this, newAgent), panPhysHooks, panAudioHooks, panGfxHooks);
+		agencyIndex.addAgent(newAgent);
+		return new AgentHooksBundle(newAgent, new AgentHooks(this, newAgent), new PhysicsHooks(this, newAgent),
+				panAudioHooks, panGfxHooks);
+	}
+
+	public AgentBody createAgentBody(Agent agent, BodyDef bdef) {
+		return new AgentBody(agent, panWorld.createBody(bdef));
+	}
+
+	public void destroyAgentBody(AgentBody agentBody) {
+		if(destroyedBodies.contains(agentBody))
+			throw new IllegalArgumentException("Cannot destory AgentBody twice, ref="+agentBody);
+		destroyedBodies.add(agentBody);
+		panWorld.destroyBody(agentBody.b2body);
 	}
 
 	public void setEar(Ear ear) {
@@ -119,16 +134,16 @@ public class Agency implements Disposable {
 		return agencyIndex.getAgentsByProperties(keys, vals, false);
 	}
 
-//	Agent hookGetFirstAgentByProperties(String[] keys, Object[] vals) {
-//		LinkedList<Agent> aList = agencyIndex.getAgentsByProperties(keys, vals, true);
-//		if(aList.isEmpty())
-//			return null;
-//		return aList.getFirst();
-//	}
+	Agent hookGetFirstAgentByProperties(String[] keys, Object[] vals) {
+		LinkedList<Agent> aList = agencyIndex.getAgentsByProperties(keys, vals, true);
+		if(aList.isEmpty())
+			return null;
+		return aList.getFirst();
+	}
 
-//	LinkedList<Agent> hookGetAgentsByProperty(String key, Object val) {
-//		return agencyIndex.getAgentsByProperties(new String[] { key }, new Object[] { val }, false);
-//	}
+	LinkedList<Agent> hookGetAgentsByProperty(String key, Object val) {
+		return agencyIndex.getAgentsByProperties(new String[] { key }, new Object[] { val }, false);
+	}
 
 	Agent hookGetFirstAgentByProperty(String key, Object val) {
 		LinkedList<Agent> aList = agencyIndex.getAgentsByProperties(new String[] { key }, new Object[] { val }, true);

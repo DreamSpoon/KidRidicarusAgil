@@ -1,4 +1,4 @@
-package kidridicarus.common.tool;
+package kidridicarus.story.tool;
 
 import java.util.Iterator;
 
@@ -10,6 +10,8 @@ import com.badlogic.gdx.math.Vector2;
 import kidridicarus.agency.Agent;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
+import kidridicarus.common.tool.Direction4;
+import kidridicarus.common.tool.Direction8;
 import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.info.StoryKV;
@@ -21,20 +23,20 @@ import kidridicarus.story.info.StoryKV;
  *   -retrieving individual Agent properties
  */
 public class RP_Tool {
-	public static ObjectProperties createAP(String roleClassAlias) {
+	public static ObjectProperties createRP(String roleClassAlias) {
 		ObjectProperties ret = new ObjectProperties();
 		ret.put(StoryKV.KEY_ROLE_CLASS, roleClassAlias);
 		return ret;
 	}
 
-	public static ObjectProperties createPointAP(String roleClassAlias, Vector2 position) {
+	public static ObjectProperties createPointRP(String roleClassAlias, Vector2 position) {
 		ObjectProperties ret = new ObjectProperties();
 		ret.put(StoryKV.KEY_ROLE_CLASS, roleClassAlias);
 		ret.put(CommonKV.KEY_POSITION, position);
 		return ret;
 	}
 
-	public static ObjectProperties createPointAP(String roleClassAlias, Vector2 position, Vector2 velocity) {
+	public static ObjectProperties createPointRP(String roleClassAlias, Vector2 position, Vector2 velocity) {
 		ObjectProperties ret = new ObjectProperties();
 		ret.put(StoryKV.KEY_ROLE_CLASS, roleClassAlias);
 		ret.put(CommonKV.KEY_POSITION, position);
@@ -50,22 +52,24 @@ public class RP_Tool {
 	}
 
 	public static ObjectProperties createTileRP(MapProperties mapProps, Rectangle bounds,
-			TextureRegion tileTexRegion) {
-		ObjectProperties agentProps = createRectangleRP(mapProps, bounds);
+			TextureRegion tileTexRegion, Role parentRole) {
+		ObjectProperties agentProps = createRectangleRP(mapProps, bounds, parentRole);
 		// add a reference to the start tile texture region if non-null is given 
 		if(tileTexRegion != null)
 			agentProps.put(CommonKV.KEY_TEXREGION, tileTexRegion);
 		return agentProps;
 	}
 
-	public static ObjectProperties createRectangleRP(MapProperties mapProps, Rectangle bounds) {
-		ObjectProperties agentProps = createMapAP(mapProps);
+	public static ObjectProperties createRectangleRP(MapProperties mapProps, Rectangle bounds, Role parentRole) {
+		ObjectProperties agentProps = createMapRP(mapProps);
 		// copy the bounds rectangle to the agent properties
 		agentProps.put(CommonKV.KEY_BOUNDS, bounds);
+		if(parentRole != null)
+			agentProps.put(CommonKV.KEY_PARENT_ROLE, parentRole);
 		return agentProps;
 	}
 
-	private static ObjectProperties createMapAP(MapProperties mapProps) {
+	private static ObjectProperties createMapRP(MapProperties mapProps) {
 		// copy the map properties to the agent properties
 		ObjectProperties agentProps = new ObjectProperties();
 		Iterator<String> keyIter = mapProps.getKeys();
