@@ -1,25 +1,19 @@
 package kidridicarus.common.role.playerspawner;
 
-import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
-import kidridicarus.agency.agent.AgentPropertyListener;
+import com.badlogic.gdx.math.Rectangle;
+
+import kidridicarus.agency.AgentPropertyListener;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
-import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.tool.Direction4;
+import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.tool.RP_Tool;
 
-public class PlayerSpawner extends CorpusRole {
+public class PlayerSpawner extends Role {
 	public PlayerSpawner(RoleHooks roleHooks, ObjectProperties properties) {
 		super(roleHooks, properties);
-		body = new PlayerSpawnerBody(this, myPhysHooks, RP_Tool.getBounds(properties));
-		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
-				@Override
-				public void preAgentRemoval() { dispose(); }
-				@Override
-				public void postAgentRemoval() {}
-			});
-
+		final Rectangle bounds = RP_Tool.getBounds(properties);
 		final String strName = properties.getString(CommonKV.Script.KEY_NAME, null);
 		final String spawnType = properties.getString(CommonKV.Spawn.KEY_SPAWN_TYPE,
 				CommonKV.Spawn.VAL_SPAWN_TYPE_IMMEDIATE);
@@ -27,6 +21,11 @@ public class PlayerSpawner extends CorpusRole {
 		final String strPlayerRoleClass = properties.getString(CommonKV.Spawn.KEY_PLAYER_ROLECLASS, null);
 		final Direction4 spawnDir = properties.getDirection4(CommonKV.KEY_DIRECTION, Direction4.NONE);
 		// name is a global property so that this spawner can be searched, all other properties are local
+		myAgentHooks.addPropertyListener(false, CommonKV.KEY_BOUNDS,
+				new AgentPropertyListener<Rectangle>(Rectangle.class) {
+				@Override
+				public Rectangle getValue() { return bounds; }
+			});
 		myAgentHooks.addPropertyListener(true, CommonKV.Script.KEY_NAME,
 				new AgentPropertyListener<String>(String.class) {
 				@Override

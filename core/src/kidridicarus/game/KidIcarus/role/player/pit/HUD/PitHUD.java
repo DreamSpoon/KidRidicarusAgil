@@ -11,9 +11,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Align;
 
 import kidridicarus.common.info.GFX_Info;
-import kidridicarus.common.role.playerrole.PlayerRole;
-import kidridicarus.common.role.playerrole.playerHUD.PlayerHUD;
-import kidridicarus.common.role.playerrole.playerHUD.TexRegionActor;
+import kidridicarus.common.role.player.PlayerRole;
+import kidridicarus.common.role.player.HUD.PlayerHUD;
+import kidridicarus.common.role.player.HUD.TexRegionActor;
 import kidridicarus.game.KidIcarus.KidIcarusGfx;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
 

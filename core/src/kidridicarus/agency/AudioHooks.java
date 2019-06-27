@@ -1,15 +1,16 @@
 package kidridicarus.agency;
 
 import kidridicarus.agency.tool.Ear;
+import kidridicarus.agency.tool.EarPlug;
 
 public class AudioHooks {
-	private Agency myAgency;
+	private EarPlug earPlug;
 
-	AudioHooks(Agency agency) {
-		this.myAgency = agency;
+	AudioHooks(EarPlug earPlug) {
+		this.earPlug = earPlug;
 	}
 
 	public Ear getEar() {
-		return myAgency.earplug.getEar();
+		return earPlug.getEar();
 	}
 }

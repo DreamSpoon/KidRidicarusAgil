@@ -14,12 +14,18 @@ public class CommonKV {
 	public static final String VAL_DOWN = "down";
 	public static final String VAL_DOWN_RIGHT = "down_right";
 
+	public static final String KEY_PARENT_ROLE = "parent_role";
+	public static final String KEY_CHILD_ROLE = "child_role";
 	public static final String KEY_POSITION = "position";
 	public static final String KEY_BOUNDS = "bounds";
 	public static final String KEY_VELOCITY = "velocity";
 	// used by tile Role constructors (e.g. breakable brick tile blocks)
 	public static final String KEY_TEXREGION = "tex_region";
-	public static final String KEY_PARENT_ROLE = "parent_role";
+	public static final String KEY_CURRENT_ROOM = "current_room";
+	public static final String KEY_GAME_OVER = "game_over";
+	public static final String KEY_NON_CHAR_POWERUPLIST = "non_char_poweruplist";
+	public static final String KEY_NEXTLEVEL_FILENAME = "nextlevel_filename";
+	public static final String KEY_EXIT_SPAWNER = "exit_spawner";
 
 	public class Player {
 		public static final String KEY_ROLE_PROPERTIES = "role_properties";
@@ -32,6 +38,7 @@ public class CommonKV {
 		public static final String VAL_DRAWABLE_TILEMAP = "drawable_tiled_map";
 		public static final String VAL_KEEPALIVE_BOX = "keep_alive_box";
 		public static final String VAL_LEVELEND_TRIGGER = "level_end_trigger";
+		public static final String VAL_LEVELEND_SCRIPT = "levelend_script";
 		public static final String VAL_META_TILEDMAP = "meta_tiled_map";
 		public static final String VAL_PIPEWARP = "pipe_warp";
 		public static final String VAL_PLAYER_SPAWNER = "player_spawner";

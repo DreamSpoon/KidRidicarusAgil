@@ -10,7 +10,6 @@ import kidridicarus.common.info.UInfo;
 import kidridicarus.common.role.followbox.FollowBox;
 import kidridicarus.common.role.followbox.FollowBoxBody;
 import kidridicarus.common.tool.Direction4;
-import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.tool.RP_Tool;
 
@@ -19,7 +18,7 @@ public abstract class ScrollBox extends FollowBox {
 	private static final float LONG_DIM = UInfo.P2M(32f);
 	private static final float OFFSET = UInfo.P2M(10f);
 
-	protected abstract FollowBoxBody createScrollBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds);
+	protected abstract FollowBoxBody createScrollBoxBody(PhysicsHooks physHooks, Rectangle bounds);
 
 	private Direction4 scrollDir;
 
@@ -44,7 +43,7 @@ public abstract class ScrollBox extends FollowBox {
 				throw new IllegalStateException("Cannot create scroll push box with scrollDir = " + scrollDir);
 		}
 		Vector2 pos = RP_Tool.getCenter(properties);
-		body = createScrollBoxBody(this, myPhysHooks, new Rectangle(pos.x, pos.y, width, height));
+		body = createScrollBoxBody(myPhysHooks, new Rectangle(pos.x, pos.y, width, height));
 	}
 
 	// get view center, add offset based on scroll direction, and set target from offset position

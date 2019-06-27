@@ -1,53 +1,68 @@
 package kidridicarus.game.KidIcarus.role.other.kidicarusdoor;
 
-import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Fixture;
+import java.util.Collection;
+import java.util.LinkedList;
 
+import com.badlogic.gdx.math.Vector2;
+
+import kidridicarus.agency.AgentFilter;
+import kidridicarus.agency.AgentFixture;
 import kidridicarus.agency.PhysicsHooks;
-import kidridicarus.agency.agentbody.AgentBodyFilter;
-import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.rolesensor.RoleContactHoldSensor;
+import kidridicarus.common.role.optional.ScriptableRole;
+import kidridicarus.common.role.player.PlayerRole;
 import kidridicarus.common.tool.ABodyFactory;
+import kidridicarus.story.RoleSensor;
 import kidridicarus.story.rolebody.RoleBody;
 
 class KidIcarusDoorBody extends RoleBody {
-	private static final float BODY_WIDTH = UInfo.P2M(14f);
-	private static final float BODY_HEIGHT = UInfo.P2M(27f);
+	private static final Vector2 DOORWAY_SIZE = UInfo.VectorP2M(14f, 27f);
 	private static final Vector2 BODY_OFFSET = UInfo.VectorP2M(0f, -2.5f);
-	private static final float ROOF_WIDTH = UInfo.P2M(13f);
-	private static final float ROOF_HEIGHT = UInfo.P2M(4f);
+	private static final Vector2 ROOF_SIZE = UInfo.VectorP2M(13f, 4f);
+	private static final float GRAVITY_SCALE = 0f;
 
-	private static final CFBitSeq CLOSED_CFCAT = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT);
-	private static final CFBitSeq CLOSED_CFMASK = new CFBitSeq(true);
-	private static final CFBitSeq OPENED_CFCAT = new CFBitSeq(CommonCF.Alias.ROLE_BIT);
-	private static final CFBitSeq OPENED_CFMASK = new CFBitSeq(CommonCF.Alias.ROLE_BIT);
-	private static final CFBitSeq ROOF_CFCAT = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT);
-	private static final CFBitSeq ROOF_CFMASK = new CFBitSeq(true);
+	private RoleSensor playerSensor;
+	private AgentFixture doorwaySolidFixture;
+	private boolean isOpened;
 
-	private RoleContactHoldSensor roleSensor;
-	private Fixture mainBodyFixture;
-
-	KidIcarusDoorBody(PhysicsHooks physHooks, Vector2 position, boolean isOpened,
-			RoleContactHoldSensor roleSensor) {
+	KidIcarusDoorBody(PhysicsHooks physHooks, Vector2 position, boolean isOpened) {
 		super(physHooks);
-		this.roleSensor = roleSensor;
 
-		// set body size and create new body
-		setBoundsSize(BODY_WIDTH, BODY_HEIGHT);
-		agentBody = ABodyFactory.makeStaticBody(physHooks, position.cpy().add(BODY_OFFSET));
-		// create the Role sensor, it will be used now and/or later
-		mainBodyFixture = ABodyFactory.makeBoxFixture(agentBody, isOpened ? OPENED_CFCAT : CLOSED_CFCAT,
-				isOpened ? OPENED_CFMASK : CLOSED_CFMASK, roleSensor, getBounds().width, getBounds().height);
-		// solid roof that player can stand on
-		ABodyFactory.makeBoxFixture(agentBody, ROOF_CFCAT, ROOF_CFMASK, this, ROOF_WIDTH, ROOF_HEIGHT,
-				new Vector2(0f, (BODY_HEIGHT+ROOF_HEIGHT)/2f));
+		this.isOpened = isOpened;
+
+		this.agentBody = ABodyFactory.makeDynamicBody(physHooks, position.cpy().add(BODY_OFFSET));
+		this.agentBody.setGravityScale(GRAVITY_SCALE);
+
+		// create the player sensor fixture
+		AgentFilter playerSensorFilter = new AgentFilter(CommonCF.ACFB.PLAYER_TAKEBIT, CommonCF.ACFB.PLAYER_GIVEBIT);
+		AgentFixture playerSensorFixture = ABodyFactory.makeSensorBoxFixture(this.agentBody, playerSensorFilter,
+				DOORWAY_SIZE);
+		this.playerSensor = new RoleSensor(playerSensorFixture, playerSensorFilter);
+
+		// door fixture that can be solid if door is closed, or non-solid if door is open
+		this.doorwaySolidFixture = ABodyFactory.makeBoxFixture(this.agentBody,
+				isOpened ? CommonCF.NO_CONTACT_FILTER : CommonCF.FULL_SOLID_FILTER, DOORWAY_SIZE);
+
+		// solid roof that things can stand on
+		ABodyFactory.makeBoxFixture(this.agentBody, CommonCF.FULL_SOLID_FILTER, ROOF_SIZE,
+				new Vector2(0f, (DOORWAY_SIZE.y+ROOF_SIZE.y)/2f));
 	}
 
 	void setOpened(boolean isOpened) {
-		mainBodyFixture.setUserData(new AgentBodyFilter(isOpened ? OPENED_CFCAT : CLOSED_CFCAT,
-				isOpened ? OPENED_CFMASK : CLOSED_CFMASK, roleSensor));
-		mainBodyFixture.refilter();
+		// if open state is not changing then exit
+		if(this.isOpened == isOpened)
+			return;
+		doorwaySolidFixture.setFilterData(isOpened ? CommonCF.NO_CONTACT_FILTER : CommonCF.FULL_SOLID_FILTER);
+	}
+
+	// returns a begin contacts list of PlayerRoles that are also ScriptableRoles
+	Collection<ScriptableRole> getPlayerBeginContacts() {
+		Collection<ScriptableRole> playerRoles = new LinkedList<ScriptableRole>();
+		for(PlayerRole role : playerSensor.getBeginContactsByRoleClass(PlayerRole.class)) {
+			if(role instanceof ScriptableRole)
+				playerRoles.add((ScriptableRole) role);
+		}
+		return playerRoles;
 	}
 }

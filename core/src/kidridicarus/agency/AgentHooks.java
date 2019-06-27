@@ -1,11 +1,10 @@
 package kidridicarus.agency;
 
-import java.util.LinkedList;
+import java.util.Collection;
 
 import kidridicarus.agency.Agent.AgentDrawListener;
 import kidridicarus.agency.Agent.AgentUpdateListener;
 import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
-import kidridicarus.agency.agent.AgentPropertyListener;
 
 /*
  * Even though this class is inside Agency, it is called AgentHooks and not AgencyHooks because the Object is
@@ -15,98 +14,112 @@ import kidridicarus.agency.agent.AgentPropertyListener;
  */
 public class AgentHooks {
 	private final Agency myAgency;
+	private AgencyIndex myAgencyIndex;
 	private Agent ownerAgent;
 
-	AgentHooks(Agency agency, Agent ownerAgent) {
+	AgentHooks(Agency agency, AgencyIndex agencyIndex, Agent ownerAgent) {
 		this.myAgency = agency;
+		this.myAgencyIndex = agencyIndex;
 		this.ownerAgent = ownerAgent;
 	}
 
 	// Agent can only remove itself, if a sub-Agent needs removal then the sub-Agent must remove itself
 	public void removeThisAgent() {
-		myAgency.agencyIndex.queueRemoveAgent(ownerAgent);
+		myAgencyIndex.queueRemoveAgent(ownerAgent);
 	}
 
 	public void createAgentRemovalRequirement(Agent otherAgent, boolean isOtherParent) {
 		if(isOtherParent) {
 			// ownerAgent will be removed if otherAgent is removed
-			myAgency.agencyIndex.createAgentRemovalRequirement(ownerAgent, otherAgent);
+			myAgencyIndex.createAgentRemovalRequirement(ownerAgent, otherAgent);
 		}
 		else {
 			// otherAgent will be removed if ownerAgent is removed
-			myAgency.agencyIndex.createAgentRemovalRequirement(otherAgent, ownerAgent);
+			myAgencyIndex.createAgentRemovalRequirement(otherAgent, ownerAgent);
 		}
 	}
 
 	public void destroyAgentRemovalRequirement(Agent otherAgent) {
-		myAgency.agencyIndex.destroyAgentRemovalRequirement(ownerAgent, otherAgent);
+		myAgencyIndex.destroyAgentRemovalRequirement(ownerAgent, otherAgent);
 	}
 
 	public void createAgentRemovalOrder(Agent otherAgent, boolean isOtherParent) {
 		if(isOtherParent) {
 			// ownerAgent will be removed before otherAgent
-			myAgency.agencyIndex.createAgentRemovalOrder(ownerAgent, otherAgent);
+			myAgencyIndex.createAgentRemovalOrder(ownerAgent, otherAgent);
 		}
 		else {
 			// otherAgent will be removed before ownerAgent
-			myAgency.agencyIndex.createAgentRemovalOrder(otherAgent, ownerAgent);
+			myAgencyIndex.createAgentRemovalOrder(otherAgent, ownerAgent);
 		}
 	}
 
 	public void destroyAgentRemovalOrder(Agent otherAgent) {
-		myAgency.agencyIndex.destroyAgentRemovalOrder(ownerAgent, otherAgent);
+		myAgencyIndex.destroyAgentRemovalOrder(ownerAgent, otherAgent);
 	}
 
 	public AgentRemovalListener createInternalRemovalListener(AgentRemovalCallback callback) {
-		return myAgency.agencyIndex.createInternalRemovalListener(ownerAgent, callback);
+		return myAgencyIndex.createInternalRemovalListener(ownerAgent, callback);
 	}
 
 	public void destroyInternalRemovalListener(AgentRemovalListener removalListener) {
-		myAgency.agencyIndex.destroyInternalRemovalListener(removalListener);
+		myAgencyIndex.destroyInternalRemovalListener(removalListener);
 	}
 
 	public AgentRemovalListener createExternalRemovalListener(Agent otherAgent, AgentRemovalCallback callback) {
-		return myAgency.agencyIndex.createExternalRemovalListener(ownerAgent, otherAgent, callback);
+		return myAgencyIndex.createExternalRemovalListener(ownerAgent, otherAgent, callback);
 	}
 
 	public void destroyExternalRemovalListener(AgentRemovalListener removalListener) {
-		myAgency.agencyIndex.destroyExternalRemovalListener(removalListener);
+		myAgencyIndex.destroyExternalRemovalListener(removalListener);
 	}
 
 	public void addPropertyListener(boolean isGlobal, String propertyKey,
 			AgentPropertyListener<?> propertyListener) {
 		// method order of arguments differs from the changeQ method, for inline listener creation convenience
-		myAgency.agencyIndex.addPropertyListener(ownerAgent, propertyListener, propertyKey, isGlobal);
+		myAgencyIndex.addPropertyListener(ownerAgent, propertyListener, propertyKey, isGlobal);
 	}
 
 	public void removePropertyListener(String propertyKey) {
-		myAgency.agencyIndex.removePropertyListener(ownerAgent, propertyKey);
+		myAgencyIndex.removePropertyListener(ownerAgent, propertyKey);
 	}
 
 	public void addUpdateListener(float updateOrder, AgentUpdateListener updateListener) {
 		// method order of arguments differs from the changeQ method, for inline listener creation convenience
-		myAgency.agencyIndex.queueAddUpdateListener(ownerAgent, updateListener, updateOrder);
+		myAgencyIndex.queueAddUpdateListener(ownerAgent, updateListener, updateOrder);
 	}
 
 	public void removeUpdateListener(AgentUpdateListener updateListener) {
-		myAgency.agencyIndex.queueRemoveUpdateListener(ownerAgent, updateListener);
+		myAgencyIndex.queueRemoveUpdateListener(ownerAgent, updateListener);
 	}
 
 	public void addDrawListener(float drawOrder, AgentDrawListener drawListener) {
 		// method order of arguments differs from the changeQ method, for inline listener creation convenience
-		myAgency.agencyIndex.queueAddDrawListener(ownerAgent, drawListener, drawOrder);
+		myAgencyIndex.addDrawListener(ownerAgent, drawListener, drawOrder);
 	}
 
 	public void removeDrawListener(AgentDrawListener drawListener) {
-		myAgency.agencyIndex.queueRemoveDrawListener(ownerAgent, drawListener);
+		myAgencyIndex.removeDrawListener(ownerAgent, drawListener);
+	}
+
+	public Collection<Agent> getAgentsByProperties(String[] keys, Object[] vals) {
+		return myAgency.hookGetAgentsByProperties(keys, vals);
+	}
+
+	public Collection<Agent> getAgentsByProperty(String key, Object val) {
+		return myAgency.hookGetAgentsByProperties(new String[] { key }, new Object[] { val });
+	}
+
+	public Agent getFirstAgentByProperties(String[] keys, Object[] vals) {
+		return myAgency.hookGetFirstAgentByProperties(keys, vals);
 	}
 
 	public Agent getFirstAgentByProperty(String key, Object val) {
-		return myAgency.hookGetFirstAgentByProperty(key, val);
+		return myAgency.hookGetFirstAgentByProperties(new String[] { key }, new Object[] { val });
 	}
 
-	public LinkedList<Agent> getAgentsByProperties(String[] keys, Object[] vals) {
-		return myAgency.hookGetAgentsByProperties(keys, vals);
+	public float getAbsTime() {
+		return myAgency.getAbsTime();
 	}
 
 	public void setUserData(Object userData) {

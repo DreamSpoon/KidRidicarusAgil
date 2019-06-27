@@ -1,7 +1,7 @@
 package kidridicarus.game.KidIcarus;
 
-import kidridicarus.common.powerup.PowChar;
-import kidridicarus.common.powerup.Powerup;
+import kidridicarus.common.role.powerup.PowChar;
+import kidridicarus.common.role.powerup.Powerup;
 
 public class KidIcarusPow extends Powerup {
 	private static final int CHALICE_HEAL_AMT = 6;

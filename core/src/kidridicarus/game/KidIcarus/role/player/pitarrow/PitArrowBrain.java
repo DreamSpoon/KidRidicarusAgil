@@ -2,9 +2,8 @@ package kidridicarus.game.KidIcarus.role.player.pitarrow;
 
 import kidridicarus.agency.AgentHooks;
 import kidridicarus.agency.agentsprite.SpriteFrameInput;
-import kidridicarus.common.role.optional.ContactDmgTakeRole;
+import kidridicarus.common.role.optional.TakeDamageRole;
 import kidridicarus.common.role.roombox.RoomBox;
-import kidridicarus.common.rolespine.SolidContactSpine;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.game.KidIcarus.role.player.pit.Pit;
 
@@ -17,18 +16,18 @@ class PitArrowBrain {
 	private Pit playerParent;
 	// hooks are used to remove arrow Agent, not player Agent
 	private AgentHooks arrowParentHooks;
-	private SolidContactSpine spine;
+	private PitArrowBody body;
 	private float moveStateTimer;
 	private boolean isExpireImmediate;
 	private Direction4 arrowDir;
 	private RoomBox lastKnownRoom;
 	private boolean despawnMe;
 
-	PitArrowBrain(Pit playerParent, AgentHooks arrowParentHooks, SolidContactSpine spine, boolean isExpireImmediate,
+	PitArrowBrain(Pit playerParent, AgentHooks arrowParentHooks, PitArrowBody body, boolean isExpireImmediate,
 			Direction4 arrowDir) {
 		this.playerParent = playerParent;
 		this.arrowParentHooks = arrowParentHooks;
-		this.spine = spine;
+		this.body = body;
 		this.arrowDir = arrowDir;
 		// check the definition properties, maybe the shot needs to expire immediately
 		this.isExpireImmediate = isExpireImmediate;
@@ -39,19 +38,22 @@ class PitArrowBrain {
 
 	void processContactFrame() {
 		// push damage to contact damage agents
-		for(ContactDmgTakeRole role : spine.getContactDmgTakeRoles()) {
+		for(TakeDamageRole role : body.getContactDmgTakeRoles()) {
 			// do not damage player parent
 			if(role == playerParent)
 				continue;
-			if(role.onTakeDamage(playerParent, GIVE_DAMAGE, spine.getPosition()))
+			if(role.onTakeDamage(playerParent, GIVE_DAMAGE, body.getPosition())) {
 				despawnMe = true;
+				// only one damage strike per arrow, so exit loop now
+				break;
+			}
 		}
-		// if not touching keep alive box, or if touching despawn, or if hit a solid, then set despawn flag
-		if(!spine.isContactKeepAlive() || spine.isContactDespawn() || spine.isMoveBlocked(arrowDir))
+		// if not touching keep alive, or if hit a solid, then despawn
+		if(!body.isContactKeepAlive() || body.isMoveBlocked(arrowDir))
 			despawnMe = true;
 		// otherwise update last known room if possible
-		else if(spine.getCurrentRoom() != null)
-			lastKnownRoom = spine.getCurrentRoom();
+		else if(body.getCurrentRoom() != null)
+			lastKnownRoom = body.getCurrentRoom();
 	}
 
 	SpriteFrameInput processFrame(float delta) {
@@ -64,6 +66,6 @@ class PitArrowBrain {
 		}
 		// do space wrap last so that contacts are maintained
 //		spine.checkDoSpaceWrap(lastKnownRoom);
-		return new PitArrowSpriteFrameInput(spine.getPosition(), arrowDir);
+		return new PitArrowSpriteFrameInput(body.getPosition(), arrowDir);
 	}
 }

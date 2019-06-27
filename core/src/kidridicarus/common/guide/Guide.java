@@ -6,13 +6,21 @@ import com.badlogic.gdx.audio.Music.OnCompletionListener;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import kidridicarus.agency.tool.Ear;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.AudioInfo;
-import kidridicarus.common.metarole.playercontrollerrole.PlayerControllerRole;
+import kidridicarus.common.info.CommonInfo;
+import kidridicarus.common.info.UInfo;
+import kidridicarus.common.role.player.PlayerControllerRole;
 import kidridicarus.story.Story;
 
 /*
@@ -24,6 +32,7 @@ import kidridicarus.story.Story;
 public class Guide implements Disposable {
 	private AssetManager manager;
 	private Story story;
+	private OrthogonalTiledMapRenderer tileRenderer;
 	private PlayerControllerRole playerController;
 	private Eye eye;
 	private Ear ear;
@@ -36,6 +45,7 @@ public class Guide implements Disposable {
 	public Guide(AssetManager manager, Batch batch, OrthographicCamera camera, Story story) {
 		this.manager = manager;
 		this.story = story;
+		tileRenderer = new OrthogonalTiledMapRenderer(null, UInfo.P2M(1f), batch);
 
 		playerController = null;
 		currentMainMusicName = "";
@@ -139,10 +149,34 @@ public class Guide implements Disposable {
 		currentSinglePlayMusic = null;
 	}
 
-	private Eye createEye(Batch batch, OrthographicCamera camera) {
+	private Eye createEye(final Batch batch, final OrthographicCamera camera) {
 		if(eye != null)
 			throw new IllegalStateException("Cannot create second eye.");
-		eye = new Eye(batch, camera);
+		eye = new Eye() {
+			@Override
+			public void setViewCenter(Vector2 viewCenter) {
+				camera.position.set(viewCenter, 0f);
+				camera.update();
+				tileRenderer.setView(camera);
+				batch.setProjectionMatrix(camera.combined);
+			}
+			@Override
+			public void draw(Sprite spr) { spr.draw(batch); }
+			@Override
+			public void draw(TiledMapTileLayer layer) { tileRenderer.renderTileLayer(layer); }
+			@Override
+			public void begin() { batch.begin(); }
+			@Override
+			public void end() { batch.end(); }
+			@Override
+			public boolean isDrawing() { return batch.isDrawing(); }
+			// it is a bit odd to create Stage here
+			@Override
+			public Stage createStage() {
+				return new Stage(new FitViewport(CommonInfo.V_WIDTH, CommonInfo.V_HEIGHT, new OrthographicCamera()),
+						batch);
+			}
+		};
 		return eye;
 	}
 
@@ -175,8 +209,9 @@ public class Guide implements Disposable {
 			ear = null;
 		}
 		if(eye != null) {
-			eye.dispose();
 			story.setEye(null);
+			eye = null;
 		}
+		tileRenderer.dispose();
 	}
 }

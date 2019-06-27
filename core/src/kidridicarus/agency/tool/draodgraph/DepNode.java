@@ -2,8 +2,11 @@ package kidridicarus.agency.tool.draodgraph;
 
 import java.util.HashSet;
 
+import kidridicarus.agency.tool.DoIt;
+
+// DRAOD Graph Dependency Node
 public class DepNode {
-	public DepResolver resolver;
+	public DoIt resolver;
 
 	DRAOD_Graph graph;
 	HashSet<DepEdge> requireParentEdges;
@@ -14,7 +17,7 @@ public class DepNode {
 	boolean isOrderDirty;
 	private boolean isCycleVisitDirty;
 
-	DepNode(DRAOD_Graph graph, DepResolver resolver) {
+	DepNode(DRAOD_Graph graph, DoIt resolver) {
 		this.graph = graph;
 		this.resolver = resolver;
 		requireParentEdges = new HashSet<DepEdge>();

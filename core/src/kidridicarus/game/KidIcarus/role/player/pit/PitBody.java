@@ -2,134 +2,135 @@ package kidridicarus.game.KidIcarus.role.player.pit;
 
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.physics.box2d.Fixture;
-import com.badlogic.gdx.physics.box2d.FixtureDef;
 
+import kidridicarus.agency.AgentFilter;
+import kidridicarus.agency.AgentFixture;
+import kidridicarus.agency.AgentFixtureDef;
 import kidridicarus.agency.PhysicsHooks;
-import kidridicarus.agency.agentbody.AgentBodyFilter;
-import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.common.info.CommonCF;
-import kidridicarus.common.info.CommonCF.Alias;
+import kidridicarus.common.info.CommonCF.ACFB;
+import kidridicarus.common.info.CommonCF.QCF;
+import kidridicarus.common.info.QCC;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.role.playerrole.PlayerRoleBody;
-import kidridicarus.common.rolesensor.RoleContactHoldSensor;
-import kidridicarus.common.rolesensor.SolidContactSensor;
+import kidridicarus.common.role.roombox.RoomBox;
+import kidridicarus.common.role.tiledmap.solidlayer.SolidTiledMapRole;
+import kidridicarus.common.sensor.OnGroundSensorFixture;
 import kidridicarus.common.tool.ABodyFactory;
-import kidridicarus.story.Role;
+import kidridicarus.common.tool.Direction4;
+import kidridicarus.story.RoleSensor;
+import kidridicarus.story.rolebody.RoleBody;
 import kidridicarus.story.rolescript.ScriptedBodyState;
 
-class PitBody extends PlayerRoleBody {
-	private static final float STAND_BODY_WIDTH = UInfo.P2M(8f);
-	private static final float STAND_BODY_HEIGHT = UInfo.P2M(16f);
-	private static final float DUCKING_BODY_WIDTH = UInfo.P2M(8f);
-	private static final float DUCKING_BODY_HEIGHT = UInfo.P2M(10f);
-	private static final float FOOT_WIDTH = UInfo.P2M(4f);
-	private static final float FOOT_HEIGHT = UInfo.P2M(4f);
-	private static final float GRAVITY_SCALE = 1f;
-	private static final float FRICTION = 0f;	// (default is 0.2f)
+class PitBody extends RoleBody {
+	private static final float MIN_WALK_VEL = 0.1f;
+	private static final float GROUNDMOVE_XIMP = 0.2f;
+	private static final float MAX_GROUNDMOVE_VEL = 0.65f;
+	private static final float AIRMOVE_XIMP = GROUNDMOVE_XIMP * 0.7f;
+	private static final float MAX_AIRMOVE_VEL = MAX_GROUNDMOVE_VEL;
+	private static final float STOPMOVE_XIMP = 0.08f;
+	private static final float JUMPUP_CONSTVEL = 1.6f;
+	private static final float JUMPUP_FORCE = 15.7f;
+
 	private static final Vector2 DUCK_TO_STAND_OFFSET = UInfo.VectorP2M(0f, 3f);
-	// main body
-	private static final CFBitSeq MAINBODY_CFCAT = new CFBitSeq(Alias.ROLE_BIT);
-	private static final CFBitSeq MAINBODY_CFMASK = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT,
-			CommonCF.Alias.SCROLL_PUSH_BIT, CommonCF.Alias.SEMISOLID_FLOOR_BIT);
-	// role sensor
-	private static final CFBitSeq RS_ENABLED_CFCAT = new CFBitSeq(CommonCF.Alias.ROLE_BIT);
-	private static final CFBitSeq RS_ENABLED_CFMASK = new CFBitSeq(CommonCF.Alias.ROLE_BIT,
-			CommonCF.Alias.ROOM_BIT, CommonCF.Alias.SOLID_MAP_BIT, CommonCF.Alias.POWERUP_BIT,
-			CommonCF.Alias.DESPAWN_BIT, CommonCF.Alias.SCROLL_KILL_BIT);
-	private static final CFBitSeq RS_DISABLED_CFCAT = new CFBitSeq(CommonCF.Alias.ROLE_BIT);
-	private static final CFBitSeq RS_DISABLED_CFMASK = new CFBitSeq(CommonCF.Alias.ROOM_BIT,
-			CommonCF.Alias.SOLID_MAP_BIT);
-	private static final CFBitSeq GROUND_SENSOR_CFCAT = new CFBitSeq(CommonCF.Alias.ROLE_BIT);
-	private static final CFBitSeq GROUND_SENSOR_CFMASK = new CFBitSeq(CommonCF.Alias.SOLID_BOUND_BIT,
-			CommonCF.Alias.SEMISOLID_FLOOR_FOOT_BIT);
+	private static final Vector2 STANDING_HITBOX_SIZE = UInfo.VectorP2M(8f, 16f);
+	private static final Vector2 DUCKING_HITBOX_SIZE = UInfo.VectorP2M(8f, 10f);
+	private static final Vector2 GROUND_SENSOR_SIZE = UInfo.VectorP2M(4f, 4f);
+	static final float GRAVITY_SCALE = 1f;
+	private static final float FRICTION = 0f;	// (default is 0.2f)
 
-	private SolidContactSensor solidSensor;
-	private RoleContactHoldSensor roleSensor;
-	private boolean isRoleSensorEnabled;
-	private Fixture roleSensorFixture;
+	private AgentFixture solidFixture;
+	private OnGroundSensorFixture onGroundSF;
+	private AgentFixture hitboxFixture;
+	private RoleSensor hitboxDespawnSensor;
+	private RoleSensor hitboxRoomSensor;
+	private RoleSensor hitboxTileMapSensor;
+
 	private boolean isDuckingForm;
+	private boolean isSolidContactState;
 
-	PitBody(Role parentRole, PhysicsHooks physHooks, Vector2 position, Vector2 velocity, boolean isDuckingForm,
-			SolidContactSensor solidSensor, RoleContactHoldSensor roleSensor) {
-		super(physHooks, position, velocity);
-		this.solidSensor = solidSensor;
-		this.roleSensor = roleSensor;
+	PitBody(PhysicsHooks physHooks, Vector2 position, Vector2 velocity, boolean isDuckingForm) {
+		super(physHooks);
 		this.isDuckingForm = isDuckingForm;
-		isRoleSensorEnabled = true;
-		defineBody(new Rectangle(position.x, position.y, 0f, 0f), velocity);
+		this.isSolidContactState = true;
+		defineBody(position, velocity);
 	}
 
-	private void defineBody(Rectangle bounds, Vector2 velocity) {
+	private void defineBody(Vector2 position, Vector2 velocity) {
 		// dispose the old body if it exists
 		if(agentBody != null)
-			physHooks.destroyBody(agentBody);
+			physHooks.queueDestroyAgentBody(agentBody);
 
-		if(isDuckingForm)
-			setBoundsSize(DUCKING_BODY_WIDTH, DUCKING_BODY_HEIGHT);
-		else
-			setBoundsSize(STAND_BODY_WIDTH, STAND_BODY_HEIGHT);
-		agentBody = ABodyFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()), velocity);
+		agentBody = ABodyFactory.makeDynamicBody(physHooks, position, velocity);
 		agentBody.setGravityScale(GRAVITY_SCALE);
-		createFixtures();
-		resetPrevValues();
+		if(isDuckingForm)
+			createFixtures(DUCKING_HITBOX_SIZE);
+		else
+			createFixtures(STANDING_HITBOX_SIZE);
 	}
 
-	private void createFixtures() {
-		// create main fixture
-		FixtureDef fdef = new FixtureDef();
-		fdef.friction = FRICTION;
-		ABodyFactory.makeBoxFixture(agentBody, fdef, MAINBODY_CFCAT, MAINBODY_CFMASK, this,
-				getBounds().width, getBounds().height);
+	private void createFixtures(Vector2 hitboxSize) {
+		// create solid fixture
+		AgentFixtureDef afdef = new AgentFixtureDef();
+		afdef.friction = FRICTION;
+		afdef.agentFilter = getSolidFilter();
+		solidFixture = ABodyFactory.makeBoxFixture(agentBody, afdef, hitboxSize);
 
-		// create Role sensor fixture
-		if(isRoleSensorEnabled) {
-			roleSensorFixture = ABodyFactory.makeSensorBoxFixture(agentBody, RS_ENABLED_CFCAT, RS_ENABLED_CFMASK,
-					roleSensor, getBounds().width, getBounds().height);
-		}
-		else {
-			roleSensorFixture = ABodyFactory.makeSensorBoxFixture(agentBody, RS_DISABLED_CFCAT, RS_DISABLED_CFMASK,
-					roleSensor, getBounds().width, getBounds().height);
-		}
 		// create on ground sensor fixture
-		ABodyFactory.makeSensorBoxFixture(agentBody, GROUND_SENSOR_CFCAT, GROUND_SENSOR_CFMASK, solidSensor,
-				FOOT_WIDTH, FOOT_HEIGHT, new Vector2(0f, -getBounds().height/2f));
+		onGroundSF = new OnGroundSensorFixture(agentBody, solidFixture, GROUND_SENSOR_SIZE,
+				new Vector2(0f, -hitboxSize.y/2f));
+
+		// create hitbox for sensing (and/or being sensed by) NPCs, rooms, etc.
+		hitboxFixture = ABodyFactory.makeSensorBoxFixture(agentBody, getHitboxFilter(), hitboxSize);
+		hitboxDespawnSensor = new RoleSensor(hitboxFixture,
+				new AgentFilter(ACFB.DESPAWN_TRIGGER_TAKEBIT, ACFB.DESPAWN_TRIGGER_GIVEBIT));
+		hitboxRoomSensor = new RoleSensor(hitboxFixture, new AgentFilter(ACFB.ROOM_TAKEBIT, ACFB.ROOM_GIVEBIT));
+		hitboxTileMapSensor = new RoleSensor(hitboxFixture, new AgentFilter(
+				ACFB.SOLID_TILEMAP_TAKEBIT, ACFB.SOLID_TILEMAP_GIVEBIT));
+	}
+
+	private AgentFilter getSolidFilter() {
+		if(isSolidContactState)
+			return CommonCF.HALF_SOLID_FILTER;
+		else
+			return CommonCF.NO_CONTACT_FILTER;
+	}
+
+	private AgentFilter getHitboxFilter() {
+		if(isSolidContactState) {
+			return new AgentFilter(
+					QCF.fbs(ACFB.ROOM_TAKEBIT, ACFB.PLAYER_GIVEBIT, ACFB.NPC_TAKEBIT, ACFB.POWERUP_TAKEBIT,
+							ACFB.DESPAWN_TRIGGER_TAKEBIT, ACFB.SOLID_TILEMAP_TAKEBIT, ACFB.SCROLL_PUSH_TAKEBIT),
+					QCF.fbs(ACFB.ROOM_GIVEBIT, ACFB.PLAYER_TAKEBIT, ACFB.NPC_GIVEBIT, ACFB.POWERUP_GIVEBIT,
+							ACFB.DESPAWN_TRIGGER_GIVEBIT, ACFB.SOLID_TILEMAP_GIVEBIT, ACFB.SCROLL_PUSH_GIVEBIT));
+		}
+		else
+			return new AgentFilter(ACFB.ROOM_TAKEBIT, ACFB.ROOM_GIVEBIT);
+	}
+
+	void applyDeadContacts() {
+		isSolidContactState = false;
+		solidFixture.setFilterData(getSolidFilter());
+		hitboxFixture.setFilterData(getHitboxFilter());
 	}
 
 	void useScriptedBodyState(ScriptedBodyState sbState) {
-		if(sbState.contactEnabled && !isRoleSensorEnabled) {
-			((AgentBodyFilter) roleSensorFixture.getUserData()).categoryBits = RS_ENABLED_CFCAT;
-			((AgentBodyFilter) roleSensorFixture.getUserData()).maskBits = RS_ENABLED_CFMASK;
-			roleSensorFixture.refilter();
-			isRoleSensorEnabled = true;
+		// if solid status needs to be switched...
+		if(isSolidContactState != sbState.contactEnabled) {
+			isSolidContactState = sbState.contactEnabled;
+			solidFixture.setFilterData(getSolidFilter());
+			hitboxFixture.setFilterData(getHitboxFilter());
 		}
-		else if(!sbState.contactEnabled && isRoleSensorEnabled) {
-			((AgentBodyFilter) roleSensorFixture.getUserData()).categoryBits = RS_DISABLED_CFCAT;
-			((AgentBodyFilter) roleSensorFixture.getUserData()).maskBits = RS_DISABLED_CFMASK;
-			roleSensorFixture.refilter();
-			isRoleSensorEnabled = false;
-		}
-		if(!sbState.position.epsilonEquals(getPosition(), UInfo.POS_EPSILON))
-			defineBody(new Rectangle(sbState.position.x, sbState.position.y, 0f, 0f), new Vector2(0f, 0f));
+		// If scripted position is more than Epsilon distance from current position then redefine body scripted
+		// position.
+		if(sbState.position != null && sbState.position.sub(agentBody.getPosition()).len() > UInfo.POS_EPSILON)
+			defineBody(sbState.position, sbState.velocity);
+		// if position is okay, but velocity is different by at least epsilon amount, then reset to scripted velocity
+		else if(sbState.velocity != null && sbState.velocity.sub(agentBody.getVelocity()).len() > UInfo.VEL_EPSILON)
+			agentBody.setVelocity(sbState.velocity);
 		agentBody.setGravityScale(sbState.gravityFactor * GRAVITY_SCALE);
 		// Body may "fall asleep" while no activity, also while gravityScale was zero,
-		// wake it up so that gravity functions again.
+		// wake it up so that gravity functions properly.
 		agentBody.setAwake(true);
-	}
-
-	void applyDead() {
-		allowOnlyDeadContacts();
-		agentBody.setGravityScale(0f);
-	}
-
-	private void allowOnlyDeadContacts() {
-		// disable all, and...
-		agentBody.disableAllContacts();
-		// ... re-enable the needed agent contact sensor bits
-		((AgentBodyFilter) roleSensorFixture.getUserData()).categoryBits = RS_DISABLED_CFCAT;
-		((AgentBodyFilter) roleSensorFixture.getUserData()).maskBits = RS_DISABLED_CFMASK;
-		roleSensorFixture.refilter();
-		isRoleSensorEnabled = false;
 	}
 
 	void setDuckingForm(boolean isDuckingForm) {
@@ -146,10 +147,81 @@ class PitBody extends PlayerRoleBody {
 		}
 		// if new position needs to be set then redefine body at new position
 		if(newPos != null)
-			defineBody(new Rectangle(newPos.x, newPos.y, 0f, 0f), agentBody.getVelocity());
+			defineBody(newPos, agentBody.getVelocity());
 	}
 
 	boolean isDuckingForm() {
 		return isDuckingForm;
+	}
+
+	RoomBox getCurrentRoom() {
+		return hitboxRoomSensor.getFirstCurrentContactByRoleClass(RoomBox.class);
+	}
+
+	boolean isContactDespawn() {
+		return hitboxDespawnSensor.isContact();
+	}
+
+	boolean isOnGround() {
+		return onGroundSF.isOnGround();
+	}
+
+	boolean hasWalkVelocityInDir(Direction4 right) {
+		return hasVelocityInDir(right, MIN_WALK_VEL);
+	}
+
+	void applyWalkMove(boolean isRight) {
+		if(isRight)
+			applyImpulseAndCapVel(Direction4.RIGHT, GROUNDMOVE_XIMP, MAX_GROUNDMOVE_VEL);
+		else
+			applyImpulseAndCapVel(Direction4.LEFT, GROUNDMOVE_XIMP, MAX_GROUNDMOVE_VEL);
+	}
+
+	void applyAirMove(boolean isRight) {
+		if(isRight)
+			applyImpulseAndCapVel(Direction4.RIGHT, AIRMOVE_XIMP, MAX_AIRMOVE_VEL);
+		if(isRight)
+			applyImpulseAndCapVel(Direction4.LEFT, AIRMOVE_XIMP, MAX_AIRMOVE_VEL);
+	}
+
+	void applyStopMove() {
+		// if moving right...
+		if(agentBody.getVelocity().x > MIN_WALK_VEL)
+			applyImpulse(Direction4.RIGHT, -STOPMOVE_XIMP);
+		// if moving left...
+		else if(agentBody.getVelocity().x < -MIN_WALK_VEL)
+			applyImpulse(Direction4.LEFT, -STOPMOVE_XIMP);
+		// not moving right or left fast enough, set horizontal velocity to zero to avoid wobbling
+		else
+			agentBody.setVelocity(0f, agentBody.getVelocity().y);
+	}
+
+	void applyJumpVelocity() {
+		agentBody.setVelocity(agentBody.getVelocity().x, JUMPUP_CONSTVEL);
+	}
+
+	void applyJumpForce(float forceTimer, float jumpForceDuration) {
+		if(forceTimer < jumpForceDuration)
+			agentBody.applyForce(new Vector2(0f, JUMPUP_FORCE * forceTimer / jumpForceDuration));
+	}
+
+	boolean isHeadInTile() {
+		return isMapTileSolid(UInfo.VectorM2T(agentBody.getPosition()).add(0, 1));
+	}
+
+	boolean isMapTileSolid(Vector2 tileCoords) {
+		SolidTiledMapRole ctMap =
+				this.hitboxTileMapSensor.getFirstCurrentContactByRoleClass(SolidTiledMapRole.class);
+		return ctMap == null ? false : ctMap.isMapTileSolid(tileCoords);
+	}
+
+	boolean isMapPointSolid(Vector2 position) {
+		SolidTiledMapRole ctMap =
+				this.hitboxTileMapSensor.getFirstCurrentContactByRoleClass(SolidTiledMapRole.class);
+		return ctMap == null ? false : ctMap.isMapPointSolid(position);
+	}
+
+	Rectangle getBounds() {
+		return QCC.rectSizePos(isDuckingForm ? DUCKING_HITBOX_SIZE : STANDING_HITBOX_SIZE, getPosition());
 	}
 }

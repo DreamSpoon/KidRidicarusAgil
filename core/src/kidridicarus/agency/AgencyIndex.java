@@ -1,5 +1,6 @@
 package kidridicarus.agency;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -11,24 +12,27 @@ import java.util.concurrent.LinkedBlockingQueue;
 import kidridicarus.agency.Agent.AgentDrawListener;
 import kidridicarus.agency.Agent.AgentUpdateListener;
 import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
-import kidridicarus.agency.agent.AgentPropertyListener;
+import kidridicarus.agency.tool.DoIt;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.draodgraph.DRAOD_Graph;
 import kidridicarus.agency.tool.draodgraph.DepNode;
-import kidridicarus.agency.tool.draodgraph.DepResolver;
 
 /*
- * A list of all Agents in the Agency, and their associated update listeners and draw listeners.
+ * A list of all Agents in the Agency, and their associated listeners.
  * Agent removal dependency ordering is supported.
- * In general, "create" changes are immediate and "destroy" changes are queued.
+ * TODO ensure the following explanation is correct:
+ * Create Agent is immediate.
+ * Destroy Agent changes are queued, and then batch processed at end of frame.
+ * Create update listener is queued, and then batch processed at end of frame.
+ * Destroy update listener is immediate.
+ * Create draw listener is immediate, destroy draw listener is immediate.
+ * Create property listener is immediate, destroy property listener is immediate
  */
 class AgencyIndex {
-	private interface AgencyChange { void applyChange(); }
-
 	private HashSet<Agent> allAgents;
-	private LinkedBlockingQueue<AgencyChange> removeAgentChangeQ;
-	private LinkedBlockingQueue<AgencyChange> removalNodeDestroyQ;
+	private LinkedBlockingQueue<DoIt> removeAgentChangeQ;
+	private LinkedBlockingQueue<DoIt> removalNodeDestroyQ;
 	// Agent removal dependency graph
 	private DRAOD_Graph agentRemovalGraph;
 	// a "lock" object to prevent concurrent modification errors in Agent removal graph
@@ -36,27 +40,28 @@ class AgencyIndex {
 
 	private HashMap<AgentUpdateListener, Float> allUpdateListeners;
 	private TreeMap<Float, HashSet<AgentUpdateListener>> orderedUpdateListeners;
-	private LinkedBlockingQueue<AgencyChange> updateListenerChangeQ;
+	private LinkedBlockingQueue<DoIt> updateListenerChangeQ;
 	private HashMap<AgentDrawListener, Float> allDrawListeners;
 	private TreeMap<Float, HashSet<AgentDrawListener>> orderedDrawListeners;
-	private LinkedBlockingQueue<AgencyChange> drawListenerChangeQ;
 	// sub-lists of Agents that have properties, indexed by property String
 	private HashMap<String, LinkedList<Agent>> globalPropertyKeyAgents;
+	// queue of requests to destroy Box2D bodies and fixtures
+	private LinkedBlockingQueue<DoIt> agentB2DestroyQ;
 
 	AgencyIndex() {
 		allAgents = new HashSet<Agent>();
-		removeAgentChangeQ = new LinkedBlockingQueue<AgencyChange>();
-		removalNodeDestroyQ = new LinkedBlockingQueue<AgencyChange>();
+		removeAgentChangeQ = new LinkedBlockingQueue<DoIt>();
+		removalNodeDestroyQ = new LinkedBlockingQueue<DoIt>();
 		agentRemovalGraph = new DRAOD_Graph();
 		isResolvingRemovalGraph = false;
 
 		allUpdateListeners = new HashMap<AgentUpdateListener, Float>();
 		orderedUpdateListeners = new TreeMap<Float, HashSet<AgentUpdateListener>>();
-		updateListenerChangeQ = new LinkedBlockingQueue<AgencyChange>();
+		updateListenerChangeQ = new LinkedBlockingQueue<DoIt>();
 		allDrawListeners = new HashMap<AgentDrawListener, Float>();
 		orderedDrawListeners = new TreeMap<Float, HashSet<AgentDrawListener>>();
-		drawListenerChangeQ = new LinkedBlockingQueue<AgencyChange>();
 		globalPropertyKeyAgents = new HashMap<String, LinkedList<Agent>>();
+		agentB2DestroyQ = new LinkedBlockingQueue<DoIt>();
 	}
 
 	/*
@@ -72,9 +77,9 @@ class AgencyIndex {
 		if(isResolvingRemovalGraph)
 			throw new IllegalStateException("Cannot add Agent during resolution of Agent removal dependency graph.");
 		// before adding agent, create a diabolical plan to remove agent (mwa-ha-ha!)
-		agent.removalNode = agentRemovalGraph.createNode(new DepResolver() {
+		agent.removalNode = agentRemovalGraph.createNode(new DoIt() {
 				@Override
-				public void resolve() { doAgentRemoval(agent); }
+				public void doIt() { doAgentRemoval(agent); }
 			});
 		// add agent
 		allAgents.add(agent);
@@ -98,9 +103,9 @@ class AgencyIndex {
 			throw new IllegalArgumentException(
 					"Cannot remove Agent that is already removed, agent.userData="+agent.getUserData());
 		}
-		removeAgentChangeQ.add(new AgencyChange() {
+		removeAgentChangeQ.add(new DoIt() {
 				@Override
-				public void applyChange() {
+				public void doIt() {
 					// if Agent is marked as already removed (due to removal dependency) then exit
 					if(agent.removalNode == null)
 						return;
@@ -110,17 +115,6 @@ class AgencyIndex {
 					isResolvingRemovalGraph = false;
 				}
 			});
-	}
-
-	void removeAllAgents() {
-		// safely resolve the Agent removal graph
-		isResolvingRemovalGraph = true;
-		agentRemovalGraph.resolveOrder();
-		isResolvingRemovalGraph = false;
-		// destroy the graph as a batch instead of removing dependencies one-by-one
-		agentRemovalGraph.destroyGraph();
-		// the dependencies were processed as a batch instead of individually, so clear the change queue
-		removalNodeDestroyQ.clear();
 	}
 
 	private void doAgentRemoval(final Agent agent) {
@@ -135,9 +129,9 @@ class AgencyIndex {
 		final DepNode nodeToDestroy = agent.removalNode;
 		// mark agent as removed, to prevent removing agent multiple times
 		agent.removalNode = null;
-		removalNodeDestroyQ.add(new AgencyChange() {
+		removalNodeDestroyQ.add(new DoIt() {
 				@Override
-				public void applyChange() { agentRemovalGraph.destroyNode(nodeToDestroy); }
+				public void doIt() { agentRemovalGraph.destroyNode(nodeToDestroy); }
 			});
 		removeAllUpdateListeners(agent);
 		removeAllDrawListeners(agent);
@@ -146,6 +140,40 @@ class AgencyIndex {
 
 		invokePostRemovalListeners(agent);
 		destroyAllRemovalListeners(agent);
+
+		// any bodies that were not self-removed by agent must be removed now
+		queueDestroyRemainingAgentBodies(agent);
+	}
+
+	private void queueDestroyRemainingAgentBodies(final Agent agent) {
+		// queue for destroy only AgentBodys attached to agent that are not already queued for destroy
+		for(AgentBody agentBody : agent.agentBodies) {
+			if(!agentBody.isDestroyQueueDirty)
+				queueDestroyAgentBody(agent, agentBody);
+		}
+	}
+
+	void removeAllAgents() {
+		// safely resolve the Agent removal graph
+		isResolvingRemovalGraph = true;
+		agentRemovalGraph.resolveOrder();
+		isResolvingRemovalGraph = false;
+		// destroy the graph as a batch instead of removing dependencies one-by-one
+		agentRemovalGraph.destroyGraph();
+		// the dependencies were processed as a batch instead of individually, so clear the change queue
+		removalNodeDestroyQ.clear();
+	}
+
+	void processRemoveAgentQueue() {
+		while(!removeAgentChangeQ.isEmpty())
+			removeAgentChangeQ.poll().doIt();
+		// process "destroy node" changes that were added while Agents were being removed
+		processRemovalNodeDestroyQueue();
+	}
+
+	private void processRemovalNodeDestroyQueue() {
+		while(!removalNodeDestroyQ.isEmpty())
+			removalNodeDestroyQ.poll().doIt();
 	}
 
 	/*
@@ -192,18 +220,6 @@ class AgencyIndex {
 			otherListener.myAgent.myExternalRemovalListeners.remove(otherListener);
 		// destroy the listeners that this agent added to itself
 		agent.internalRemovalListeners.clear();
-	}
-
-	void processRemoveAgentQueue() {
-		while(!removeAgentChangeQ.isEmpty())
-			removeAgentChangeQ.poll().applyChange();
-		// process "destroy node" changes that were added while Agents were being removed
-		processRemovalNodeDestroyQueue();
-	}
-
-	void processRemovalNodeDestroyQueue() {
-		while(!removalNodeDestroyQ.isEmpty())
-			removalNodeDestroyQ.poll().applyChange();
 	}
 
 	// childAgent will be removed if parentAgent is removed
@@ -281,17 +297,17 @@ class AgencyIndex {
 		}
 	}
 
-	void processUpdateListenerQueue() {
+	void processUpdateListenerChangeQueue() {
 		while(!updateListenerChangeQ.isEmpty())
-			updateListenerChangeQ.poll().applyChange();
+			updateListenerChangeQ.poll().doIt();
 	}
 
 	// add a single update listener and associate it with the given agent
 	void queueAddUpdateListener(final Agent agent, final AgentUpdateListener updateListener,
 			final Float updateOrder) {
-		updateListenerChangeQ.add(new AgencyChange() {
+		updateListenerChangeQ.add(new DoIt() {
 				@Override
-				public void applyChange() {
+				public void doIt() {
 					if(allUpdateListeners.containsKey(updateListener)) {
 						throw new IllegalArgumentException(
 								"Cannot add update listener; listener has already been added: " + updateListener);
@@ -312,9 +328,9 @@ class AgencyIndex {
 
 	// remove a single update listener associated with the given agent
 	void queueRemoveUpdateListener(final Agent agent, final AgentUpdateListener updateListener) {
-		updateListenerChangeQ.add(new AgencyChange() {
+		updateListenerChangeQ.add(new DoIt() {
 				@Override
-				public void applyChange() {
+				public void doIt() {
 					if(!allUpdateListeners.containsKey(updateListener)) {
 						throw new IllegalArgumentException(
 								"Cannot remove update listener; listener was not added: " + updateListener);
@@ -361,58 +377,43 @@ class AgencyIndex {
 		}
 	}
 
-	void processDrawListenerQueue() {
-		while(!drawListenerChangeQ.isEmpty())
-			drawListenerChangeQ.poll().applyChange();
-	}
-
 	// add a single draw listener and associate it with the given agent
-	void queueAddDrawListener(final Agent agent, final AgentDrawListener drawListener,
+	void addDrawListener(final Agent agent, final AgentDrawListener drawListener,
 			final float drawOrder) {
-		drawListenerChangeQ.add(new AgencyChange() {
-				@Override
-				public void applyChange() {
-					if(allDrawListeners.containsKey(drawListener)) {
-						throw new IllegalArgumentException(
-								"Cannot add draw listener; listener has already been added: " + drawListener);
-					}
-					// add listener to list of all draw listeners
-					allDrawListeners.put(drawListener, drawOrder);
-					HashSet<AgentDrawListener> listenerSet = orderedDrawListeners.get(drawOrder);
-					if(listenerSet == null) {
-						listenerSet = new HashSet<AgentDrawListener>();
-						orderedDrawListeners.put(drawOrder, listenerSet);
-					}
-					listenerSet.add(drawListener);
-					// add listener to Agent
-					agent.drawListeners.add(drawListener);
-				}
-			});
+		if(allDrawListeners.containsKey(drawListener)) {
+			throw new IllegalArgumentException(
+					"Cannot add draw listener; listener has already been added: " + drawListener);
+		}
+		// add listener to list of all draw listeners
+		allDrawListeners.put(drawListener, drawOrder);
+		HashSet<AgentDrawListener> listenerSet = orderedDrawListeners.get(drawOrder);
+		if(listenerSet == null) {
+			listenerSet = new HashSet<AgentDrawListener>();
+			orderedDrawListeners.put(drawOrder, listenerSet);
+		}
+		listenerSet.add(drawListener);
+		// add listener to Agent
+		agent.drawListeners.add(drawListener);
 	}
 
 	// remove a single draw listener associated with the given agent
-	void queueRemoveDrawListener(final Agent agent, final AgentDrawListener drawListener) {
-		drawListenerChangeQ.add(new AgencyChange() {
-				@Override
-				public void applyChange() {
-					if(!allDrawListeners.containsKey(drawListener)) {
-						throw new IllegalArgumentException("Cannot remove draw listener because listener was not "+
-								"added, drawListener=" + drawListener + ", agent=" + agent);
-					}
-					// Get the current draw order for the listener...
-					float drawOrder = allDrawListeners.get(drawListener);
-					// ... to find and remove the listener from the ordered tree/hashsets.
-					HashSet<AgentDrawListener> listenerSet = orderedDrawListeners.get(drawOrder);
-					listenerSet.remove(drawListener);
-					// remove empty sets to avoid wasting memory
-					if(listenerSet.isEmpty())
-						orderedDrawListeners.remove(drawOrder);
-					// remove the listener from the list of all listeners
-					allDrawListeners.remove(drawListener);
-					// and remove the listener from the Agent's list of listeners
-					agent.drawListeners.remove(drawListener);
-				}
-			});
+	void removeDrawListener(final Agent agent, final AgentDrawListener drawListener) {
+		if(!allDrawListeners.containsKey(drawListener)) {
+			throw new IllegalArgumentException("Cannot remove draw listener because listener was not "+
+					"added, drawListener=" + drawListener + ", agent=" + agent);
+		}
+		// Get the current draw order for the listener...
+		float drawOrder = allDrawListeners.get(drawListener);
+		// ... to find and remove the listener from the ordered treeset/hashsets.
+		HashSet<AgentDrawListener> listenerSet = orderedDrawListeners.get(drawOrder);
+		listenerSet.remove(drawListener);
+		// remove empty sets to avoid wasting memory
+		if(listenerSet.isEmpty())
+			orderedDrawListeners.remove(drawOrder);
+		// remove the listener from the list of all listeners
+		allDrawListeners.remove(drawListener);
+		// and remove the listener from the Agent's list of listeners
+		agent.drawListeners.remove(drawListener);
 	}
 
 	// remove all draw listeners associated with the given agent
@@ -496,7 +497,7 @@ class AgencyIndex {
 	 * Note: The Agents in the returned list may have extra properties as well, not just the given properties -
 	 * this search is an inclusive search.
 	 */
-	LinkedList<Agent> getAgentsByProperties(String[] keys, Object[] vals, boolean firstOnly) {
+	Collection<Agent> getAgentsByProperties(String[] keys, Object[] vals, boolean firstOnly) {
 		if(keys.length != vals.length)
 			throw new IllegalArgumentException("keys[] and vals[] arrays are not of equal length.");
 		// if search keys array is empty then return empty list
@@ -536,22 +537,48 @@ class AgencyIndex {
 		for(int i=0; i<keys.length; i++) {
 			// if listener doesn't exist for key then return false, because Agent doesn't have one of the properties
 			AgentPropertyListener<?> listener = propertyListeners.get(keys[i]);
-			if(listener == null) {
+			if(listener == null)
 				return false;
-			}
 			// If the given value is null, and the listener returns non-null, then return false due to mismatch, or
 			// if the value returned by the listener does not match given value, then return false due to mismatch.
 			Object listenerVal = listener.getValue();
 			if(listenerVal == null) {
-				if(vals[i] != null) {
+				if(vals[i] != null)
 					return false;
-				}
 			}
-			else if(!listenerVal.equals(vals[i])) {
+			else if(!listenerVal.equals(vals[i]))
 				return false;
-			}
 		}
 		// return true because all search properties match
 		return true;
+	}
+
+	public void queueDestroyAgentBody(final Agent agent, final AgentBody agentBody) {
+		if(agentBody.isDestroyQueueDirty)
+			throw new IllegalArgumentException("Cannot insert AgentBody into destroy queue twice.");
+		agentBody.isDestroyQueueDirty = true;
+		agentB2DestroyQ.add(new DoIt() {
+				@Override
+				public void doIt() {
+					agent.agentBodies.remove(agentBody);
+					agentBody.destroy();
+				}
+			});
+	}
+
+	public void queueDestroyAgentFixture(final AgentFixture agentFixture) {
+		if(agentFixture.isDestroyQueueDirty)
+			throw new IllegalArgumentException("Cannot insert AgentFixture into destroy queue twice.");
+		agentFixture.isDestroyQueueDirty = true;
+		final AgentBody agentBody = agentFixture.agentBody;
+		agentB2DestroyQ.add(new DoIt() {
+				@Override
+				public void doIt() { agentBody.doDestroyFixture(agentFixture); }
+			});
+	}
+
+	public void processAgentB2DestroyQ() {
+		while(!agentB2DestroyQ.isEmpty())
+			agentB2DestroyQ.poll().doIt();
 	}
 }

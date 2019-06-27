@@ -1,31 +1,44 @@
 package kidridicarus.common.role.levelendtrigger;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.LinkedList;
 
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
+import kidridicarus.agency.AgentFilter;
+import kidridicarus.agency.AgentFixture;
 import kidridicarus.agency.PhysicsHooks;
+import kidridicarus.agency.tool.FilterBitSet;
 import kidridicarus.common.info.CommonCF;
-import kidridicarus.common.role.playerrole.PlayerRole;
-import kidridicarus.common.rolesensor.OneWayContactSensor;
+import kidridicarus.common.role.optional.ScriptableRole;
+import kidridicarus.common.role.player.PlayerRole;
 import kidridicarus.common.tool.ABodyFactory;
-import kidridicarus.story.Role;
+import kidridicarus.story.RoleSensor;
 import kidridicarus.story.rolebody.RoleBody;
 
 class LevelEndTriggerBody extends RoleBody {
-	private OneWayContactSensor playerSensor;
+	private static final float GRAVITY_SCALE = 0f;
 
-	LevelEndTriggerBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
+	private RoleSensor playerSensor;
+
+	LevelEndTriggerBody(PhysicsHooks physHooks, Rectangle bounds) {
 		super(physHooks);
-		setBoundsSize(bounds.width, bounds.height);
-		agentBody = ABodyFactory.makeStaticBody(physHooks, bounds.getCenter(new Vector2()));
-		playerSensor = new OneWayContactSensor(parentRole, true);
-		ABodyFactory.makeBoxFixture(agentBody, CommonCF.ROLE_SENSOR_CFCAT, CommonCF.ROLE_SENSOR_CFMASK, playerSensor,
-				getBounds().width, getBounds().height);
+		this.agentBody = ABodyFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()));
+		this.agentBody.setGravityScale(GRAVITY_SCALE);
+		AgentFilter filter = new AgentFilter(new FilterBitSet(CommonCF.ACFB.PLAYER_TAKEBIT),
+				new FilterBitSet(CommonCF.ACFB.PLAYER_GIVEBIT));
+		AgentFixture fixture = ABodyFactory.makeSensorBoxFixture(this.agentBody, filter, bounds.width, bounds.height);
+		this.playerSensor = new RoleSensor(fixture, filter);
 	}
 
-	public List<PlayerRole> getPlayerBeginContacts() {
-		return playerSensor.getOnlyAndResetContacts(PlayerRole.class);
+	// returns a begin contacts list of PlayerRoles that are also ScriptableRoles
+	Collection<ScriptableRole> getPlayerBeginContacts() {
+		Collection<ScriptableRole> playerRoles = new LinkedList<ScriptableRole>();
+		for(PlayerRole role : playerSensor.getBeginContactsByRoleClass(PlayerRole.class)) {
+			if(role instanceof ScriptableRole)
+				playerRoles.add((ScriptableRole) role);
+		}
+		return playerRoles;
 	}
 }

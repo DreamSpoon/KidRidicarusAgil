@@ -3,32 +3,41 @@ package kidridicarus.common.role.rolespawner;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
+import kidridicarus.agency.AgentFilter;
+import kidridicarus.agency.AgentFixture;
 import kidridicarus.agency.PhysicsHooks;
-import kidridicarus.agency.agentbody.CFBitSeq;
-import kidridicarus.common.info.CommonCF;
-import kidridicarus.common.rolesensor.RoleContactHoldSensor;
+import kidridicarus.agency.tool.FilterBitSet;
+import kidridicarus.common.info.CommonCF.ACFB;
+import kidridicarus.common.role.rolespawntrigger.RoleSpawnTrigger;
+import kidridicarus.common.role.tiledmap.solidlayer.SolidTiledMapRole;
 import kidridicarus.common.tool.ABodyFactory;
-import kidridicarus.story.Role;
+import kidridicarus.story.RoleSensor;
 import kidridicarus.story.rolebody.RoleBody;
 
 class RoleSpawnerBody extends RoleBody {
-	private static final CFBitSeq CFCAT_BITS = new CFBitSeq(CommonCF.Alias.ROLE_BIT);
-	private static final CFBitSeq CFMASK_BITS = new CFBitSeq(CommonCF.Alias.SPAWNTRIGGER_BIT,
-			CommonCF.Alias.SOLID_MAP_BIT);
 	private static final float GRAVITY_SCALE = 0f;
+	private RoleSensor spawnTriggerSensor;
+	private RoleSensor tileMapSensor;
 
-	private RoleContactHoldSensor roleSensor;
-
-	RoleSpawnerBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
+	RoleSpawnerBody(PhysicsHooks physHooks, Rectangle bounds) {
 		super(physHooks);
-		setBoundsSize(bounds.width, bounds.height);
 		agentBody = ABodyFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()));
 		agentBody.setGravityScale(GRAVITY_SCALE);
-		roleSensor = new RoleContactHoldSensor(parentRole);
-		ABodyFactory.makeSensorBoxFixture(agentBody, CFCAT_BITS, CFMASK_BITS, roleSensor, bounds.width, bounds.height);
+		AgentFixture myFixture = ABodyFactory.makeSensorBoxFixture(agentBody, new AgentFilter(
+				new FilterBitSet(ACFB.SPAWN_TRIGGER_TAKEBIT, ACFB.SOLID_TILEMAP_TAKEBIT),
+				new FilterBitSet(ACFB.SPAWN_TRIGGER_GIVEBIT, ACFB.SOLID_TILEMAP_GIVEBIT)),
+				bounds.width, bounds.height);
+		spawnTriggerSensor = new RoleSensor(myFixture, new AgentFilter(
+				new FilterBitSet(ACFB.SPAWN_TRIGGER_TAKEBIT), new FilterBitSet(ACFB.SPAWN_TRIGGER_GIVEBIT)));
+		tileMapSensor = new RoleSensor(myFixture, new AgentFilter(
+				new FilterBitSet(ACFB.SOLID_TILEMAP_TAKEBIT), new FilterBitSet(ACFB.SOLID_TILEMAP_GIVEBIT)));
 	}
 
-	<T> T getFirstContactByUserDataClass(Class<T> cls) {
-		return roleSensor.getFirstContactByUserDataClass(cls);
+	public RoleSpawnTrigger getRoleSpawnTrigger() {
+		return spawnTriggerSensor.getFirstCurrentContactByRoleClass(RoleSpawnTrigger.class);
+	}
+
+	public SolidTiledMapRole getSolidTiledMap() {
+		return tileMapSensor.getFirstCurrentContactByRoleClass(SolidTiledMapRole.class);
 	}
 }

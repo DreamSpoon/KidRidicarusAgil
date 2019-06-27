@@ -2,10 +2,12 @@ package kidridicarus.game.KidIcarus.role.item.angelheart;
 
 import kidridicarus.agency.agentsprite.SpriteFrameInput;
 import kidridicarus.common.role.optional.PowerupTakeRole;
-import kidridicarus.common.rolespine.BasicRoleSpine;
+import kidridicarus.common.role.powerup.PowerupBody;
+import kidridicarus.common.role.powerup.PowerupBody.PowerupBodyFdbk;
 import kidridicarus.common.tool.SprFrameTool;
 import kidridicarus.game.KidIcarus.KidIcarusAudio;
 import kidridicarus.game.KidIcarus.KidIcarusPow;
+import kidridicarus.game.KidIcarus.KidIcarusPow.AngelHeartPow;
 import kidridicarus.story.RoleHooks;
 
 class AngelHeartBrain {
@@ -24,15 +26,15 @@ class AngelHeartBrain {
 	}
 
 	private RoleHooks parentRoleHooks;
-	private BasicRoleSpine spine;
+	private PowerupBody body;
 	private float moveStateTimer;
 	private boolean despawnMe;
 	private boolean isUsed;
 	private AngelHeartSize heartSize;
 
-	AngelHeartBrain(RoleHooks parentRoleHooks, BasicRoleSpine spine, int heartCount) {
+	AngelHeartBrain(RoleHooks parentRoleHooks, PowerupBody body, int heartCount) {
 		this.parentRoleHooks = parentRoleHooks;
-		this.spine = spine;
+		this.body = body;
 		moveStateTimer = 0f;
 		despawnMe = false;
 		isUsed = false;
@@ -56,16 +58,20 @@ class AngelHeartBrain {
 		// exit if used
 		if(isUsed)
 			return;
-		if(!spine.isContactKeepAlive() || spine.isContactDespawn()) {
+		// if not contacting keep alive (or contacting despawn) then despawn
+		PowerupBodyFdbk fixtureFdbk = body.getPowerupFeedback();
+		if(!fixtureFdbk.isKeepAlive) {
 			despawnMe = true;
 			return;
 		}
-		// if any Roles touching this powerup are able to take it, then push it to them
-		PowerupTakeRole taker = spine.getTouchingPowerupTaker();
-		if(taker == null)
-			return;
-		if(taker.onTakePowerup(new KidIcarusPow.AngelHeartPow(heartSize.hc)))
-			isUsed = true;
+		// if a player Role touching this powerup is able to take it, then push it to them
+		AngelHeartPow myPow = new KidIcarusPow.AngelHeartPow(heartSize.hc);
+		for(PowerupTakeRole ptRole : fixtureFdbk.powerupTakers) {
+			if(ptRole.onTakePowerup(myPow)) {
+				isUsed = true;
+				break;
+			}
+		}
 	}
 
 	SpriteFrameInput processFrame(float delta) {
@@ -79,7 +85,7 @@ class AngelHeartBrain {
 			return null;
 		}
 		moveStateTimer += delta;
-		return SprFrameTool.place(spine.getPosition());
+		return SprFrameTool.place(body.getPosition());
 	}
 
 	AngelHeartSize getHeartSize() {

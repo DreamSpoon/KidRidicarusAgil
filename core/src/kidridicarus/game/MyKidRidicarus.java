@@ -19,15 +19,15 @@ import kidridicarus.story.tool.RoleClassList;
  * Main game asset loader class.
  */
 public class MyKidRidicarus extends Game {
-	public SpriteBatch batch;
 	private TextureAtlas atlas;
+	public SpriteBatch batch;
 	public AssetManager manager;
 	public Story story;
 
 	@Override
 	public void create () {
-		batch = new SpriteBatch();
 		atlas = new TextureAtlas(CommonInfo.TA_MAIN_FILENAME);
+		batch = new SpriteBatch();
 		manager = new AssetManager();
 		// other music files may be loaded later when a space is loaded
 		manager.load(KidIcarusAudio.Music.PIT_DIE, Music.class);
@@ -37,8 +37,8 @@ public class MyKidRidicarus extends Game {
 		manager.load(KidIcarusAudio.Sound.General.HEART_PICKUP, Sound.class);
 		manager.load(KidIcarusAudio.Sound.General.SMALL_POOF, Sound.class);
 		manager.finishLoading();
-		story = new Story(new RoleClassList(CommonRoleClassList.CORE_ROLE_CLASS_LIST,
-				KidIcarusRoleClassList.KIDICARUS_ROLE_CLASSLIST), atlas);
+		story = new Story(atlas, new RoleClassList(CommonRoleClassList.CORE_ROLE_CLASS_LIST,
+				KidIcarusRoleClassList.KIDICARUS_ROLE_CLASSLIST));
 		// show intro/instructions screen
 		setScreen(new InstructionsScreen(this, CommonInfo.GAMEMAP_FILENAME2));
 	}

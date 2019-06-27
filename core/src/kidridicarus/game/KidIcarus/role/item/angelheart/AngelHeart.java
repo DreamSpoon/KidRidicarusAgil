@@ -4,35 +4,33 @@ import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.Agent.AgentDrawListener;
 import kidridicarus.agency.Agent.AgentUpdateListener;
-import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
 import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
-import kidridicarus.common.role.general.CorpusRole;
-import kidridicarus.common.rolespine.BasicRoleSpine;
+import kidridicarus.common.info.UInfo;
+import kidridicarus.common.role.powerup.PowerupBody;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
 import kidridicarus.game.KidIcarus.role.item.angelheart.AngelHeartBrain.AngelHeartSize;
+import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.tool.RP_Tool;
 
-public class AngelHeart extends CorpusRole {
-	private BasicRoleSpine spine;
+public class AngelHeart extends Role {
+	private static final Vector2 HITBOX_SIZE = UInfo.VectorP2M(3f, 3f);
+
 	private AngelHeartBrain brain;
 	private AngelHeartSprite sprite;
 
 	public AngelHeart(RoleHooks roleHooks, ObjectProperties properties) {
 		super(roleHooks, properties);
-		spine = new BasicRoleSpine(this);
-		body = new AngelHeartBody(myPhysHooks, RP_Tool.getCenter(properties), spine.createRoleSensor());
-		spine.setBody(body);
-		brain = new AngelHeartBrain(roleHooks, spine, properties.get(KidIcarusKV.KEY_HEART_COUNT, 1, Integer.class));
+		PowerupBody body = new PowerupBody(myPhysHooks, RP_Tool.getCenter(properties), HITBOX_SIZE);
+		brain = new AngelHeartBrain(roleHooks, (PowerupBody) body,
+				properties.get(KidIcarusKV.KEY_HEART_COUNT, 1, Integer.class));
 		sprite = new AngelHeartSprite(myGfxHooks.getAtlas(), RP_Tool.getCenter(properties), brain.getHeartSize());
 		myAgentHooks.addUpdateListener(CommonInfo.UpdateOrder.PRE_MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
-				public void update(FrameTime frameTime) {
-					brain.processContactFrame();
-				}
+				public void update(FrameTime frameTime) { brain.processContactFrame(); }
 			});
 		myAgentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
@@ -43,12 +41,6 @@ public class AngelHeart extends CorpusRole {
 		myAgentHooks.addDrawListener(CommonInfo.DrawOrder.SPRITE_MIDDLE, new AgentDrawListener() {
 				@Override
 				public void draw(Eye eye) { eye.draw(sprite); }
-			});
-		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
-				@Override
-				public void preAgentRemoval() { dispose(); }
-				@Override
-				public void postAgentRemoval() {}
 			});
 	}
 

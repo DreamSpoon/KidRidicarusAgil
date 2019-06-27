@@ -1,36 +1,54 @@
 package kidridicarus.agency;
 
+import java.util.HashSet;
+
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Fixture;
-import com.badlogic.gdx.physics.box2d.FixtureDef;
 
-import kidridicarus.agency.agentbody.AgentBodyFilter;
-import kidridicarus.common.info.CommonCF;
-
-/*
- * Assume that an AgentBody can contain exactly one Box2D body. If more bodies are needed then a body list
- * scenario may be fruitful.
- * Body is brute and dumb - any movements, forces, etc. can be accomplished simply by calling the body's methods,
- * but the methods tend to the simple: setPosition, applyForce, applyImpulse, etc.
- * However, for more organized/coordinated movements, use a spine instead (e.g. SamusSpine.applyDamageKick method).
- * TODO
- *   -use applyForce, applyImpulse, setVelocity paradigm as much as possible, instead of manually modifying
- *    body position
- *   -caller should explicitly invoke the create/destroy methods when manually modifying the position of AgentBody
- *   -remove the defineBody/dispose paradigm, replace with the above described create/destroy method paradigm
- */
 public class AgentBody {
-	private final Agent parentAgent;
+	private final PhysicsHooks physicsHooks;
 	final Body b2body;
+	private HashSet<AgentFixture> fixtures;
+	// flag to mark if the AgentBody has already been queued for removal
+	boolean isDestroyQueueDirty;
+	// TODO private Object userData;
 
-	public AgentBody(Agent parentAgent, Body b2body) {
-		this.parentAgent = parentAgent;
+	AgentBody(PhysicsHooks physicsHooks, Body b2body) {
+		this.physicsHooks = physicsHooks;
 		this.b2body = b2body;
+		fixtures = new HashSet<AgentFixture>();
+		isDestroyQueueDirty = false;
 	}
 
-	public Fixture createFixture(FixtureDef fdef) {
-		return b2body.createFixture(fdef);
+	public AgentFixture createFixture(AgentFixtureDef afDef) {
+		if(isDestroyQueueDirty) {
+			throw new IllegalStateException("Cannot create AgentFixture while parent AgentBody is queued for "+
+					"destroy.");
+		}
+		Fixture b2fixture = b2body.createFixture(afDef.getB2FixtureDef());
+		AgentFixture newFixture = new AgentFixture(physicsHooks.myAgent, this, b2fixture, afDef);
+		fixtures.add(newFixture);
+		return newFixture;
+	}
+
+	public void queueDestroyFixture(AgentFixture agentFixture) {
+		if(isDestroyQueueDirty) {
+			throw new IllegalStateException("Cannot queue destruction of AgentFixture while parent AgentBody is "+
+					"queued for destroy.");
+		}
+		if(!fixtures.contains(agentFixture))
+			throw new IllegalArgumentException("Cannot remove AgentFixture that was not created by this AgentBody.");
+		physicsHooks.queueDestroyFixture(agentFixture);
+	}
+
+	void doDestroyFixture(AgentFixture agentFixture) {
+		fixtures.remove(agentFixture);
+		b2body.destroyFixture(agentFixture.b2Fixture);
+	}
+
+	public void setVelocity(Vector2 velocity) {
+		b2body.setLinearVelocity(velocity);
 	}
 
 	public void setVelocity(float x, float y) {
@@ -53,17 +71,8 @@ public class AgentBody {
 		b2body.setAwake(isAwake);
 	}
 
-	// TODO this convenience method should go somewhere else
-	public void disableAllContacts() {
-		for(Fixture fix : b2body.getFixtureList()) {
-			((AgentBodyFilter) fix.getUserData()).categoryBits = CommonCF.NO_CONTACT_CFCAT;
-			((AgentBodyFilter) fix.getUserData()).maskBits = CommonCF.NO_CONTACT_CFMASK;
-			fix.refilter();
-		}
-	}
-
-	public Agent getParent() {
-		return parentAgent;
+	public Agent getAgent() {
+		return physicsHooks.myAgent;
 	}
 
 	public Vector2 getPosition() {
@@ -80,5 +89,9 @@ public class AgentBody {
 
 	public void setBullet(boolean isBullet) {
 		b2body.setBullet(isBullet);
+	}
+
+	void destroy() {
+		b2body.getWorld().destroyBody(b2body);
 	}
 }

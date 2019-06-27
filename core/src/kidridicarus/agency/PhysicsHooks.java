@@ -1,6 +1,7 @@
 package kidridicarus.agency;
 
 import com.badlogic.gdx.physics.box2d.BodyDef;
+import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.physics.box2d.joints.MouseJoint;
 import com.badlogic.gdx.physics.box2d.joints.MouseJointDef;
 
@@ -10,20 +11,28 @@ import kidridicarus.agency.agentjoint.AgentMouseJoint;
 import kidridicarus.agency.agentjoint.AgentMouseJointDef;
 
 public class PhysicsHooks {
-	private final Agency myAgency;
-	private final Agent myAgent;
+	private final Agency agency;
+	private final World world;
+	final Agent myAgent;
 
-	PhysicsHooks(Agency agency, Agent agent) {
-		this.myAgency = agency;
+	PhysicsHooks(Agency agency, World world, Agent agent) {
+		this.agency = agency;
+		this.world = world;
 		this.myAgent = agent;
 	}
 
-	public AgentBody createBody(BodyDef bdef) {
-		return myAgency.createAgentBody(myAgent, bdef);
+	public AgentBody createAgentBody(BodyDef bdef) {
+		AgentBody newBody = new AgentBody(this, world.createBody(bdef));
+		myAgent.agentBodies.add(newBody);
+		return newBody;
 	}
 
-	public void destroyBody(AgentBody agentBody) {
-		myAgency.destroyAgentBody(agentBody);
+	public void queueDestroyAgentBody(final AgentBody agentBody) {
+		if(!myAgent.agentBodies.contains(agentBody)) {
+			throw new IllegalArgumentException("Cannot destroy AgentBody; AgentBody is not attached to Agent. "+
+					"myAgent.userData="+myAgent.userData);
+		}
+		agency.queueDestroyAgentBody(myAgent, agentBody);
 	}
 
 	public AgentJoint createJoint(AgentJointDef ajDef) {
@@ -36,10 +45,14 @@ public class PhysicsHooks {
 				mjdef.maxForce = ((AgentMouseJointDef) ajDef).maxForce;
 				mjdef.frequencyHz = ((AgentMouseJointDef) ajDef).frequencyHz;
 				mjdef.dampingRatio = ((AgentMouseJointDef) ajDef).dampingRatio;
-				return new AgentMouseJoint(myAgent, (MouseJoint) myAgency.panWorld.createJoint(mjdef),
+				return new AgentMouseJoint(myAgent, (MouseJoint) world.createJoint(mjdef),
 						(AgentMouseJointDef) ajDef);
 			default:
 				throw new IllegalArgumentException("Cannot create Agent Joint with unkown joint type.");
 		}
+	}
+
+	public void queueDestroyFixture(AgentFixture agentFixture) {
+		agency.queueDestroyAgentFixture(agentFixture);
 	}
 }

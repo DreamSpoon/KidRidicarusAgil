@@ -14,7 +14,7 @@ import kidridicarus.common.guide.Guide;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.KeyboardMapping;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.metarole.tiledmap.TiledMapMetaRole;
+import kidridicarus.common.role.tiledmap.TiledMapMetaRole;
 import kidridicarus.common.tool.QQ;
 import kidridicarus.game.MyKidRidicarus;
 
@@ -189,18 +189,22 @@ public class PlayScreen implements Screen {
 
 	@Override
 	public void show() {
+		// this method is purposely empty
 	}
 
 	@Override
 	public void pause() {
+		// this method is purposely empty
 	}
 
 	@Override
 	public void resume() {
+		// this method is purposely empty
 	}
 
 	@Override
 	public void hide() {
+		// this method is purposely empty
 	}
 
 	@Override

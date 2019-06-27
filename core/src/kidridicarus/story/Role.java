@@ -2,12 +2,10 @@ package kidridicarus.story;
 
 import kidridicarus.agency.Agent;
 import kidridicarus.agency.AgentHooks;
+import kidridicarus.agency.AgentPropertyListener;
 import kidridicarus.agency.AudioHooks;
 import kidridicarus.agency.GfxHooks;
 import kidridicarus.agency.PhysicsHooks;
-import kidridicarus.agency.agent.AgentPropertyListener;
-import kidridicarus.agency.agentbody.AgentBodyFilter;
-import kidridicarus.agency.agentbody.AgentContactSensor;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.story.info.StoryKV;
 
@@ -19,7 +17,7 @@ public abstract class Role {
 	protected final GfxHooks myGfxHooks;
 	protected final AudioHooks myAudioHooks;
 
-	public Role(RoleHooks roleHooks, ObjectProperties properties) {
+	protected Role(RoleHooks roleHooks, ObjectProperties properties) {
 		this.myStoryHooks = roleHooks.storyHooks;
 		this.myAgent = roleHooks.agentHooksBundle.agent;
 		this.myAgentHooks = roleHooks.agentHooksBundle.agentHooks;
@@ -38,16 +36,5 @@ public abstract class Role {
 
 	public Agent getAgent() {
 		return myAgent;
-	}
-
-	public static Role getRoleFromABF(AgentBodyFilter abf) {
-		if(abf.userData instanceof Role)
-			return (Role) abf.userData;
-		else if(abf.userData instanceof AgentContactSensor) {
-			Agent agent = ((AgentContactSensor) abf.userData).getParent();
-			if(agent != null && agent.getUserData() instanceof Role)
-				return (Role) agent.getUserData();
-		}
-		return null;
 	}
 }

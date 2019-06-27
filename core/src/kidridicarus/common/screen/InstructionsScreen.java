@@ -7,8 +7,13 @@ import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle;
@@ -20,11 +25,12 @@ import kidridicarus.agency.tool.Eye;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.KeyboardMapping;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.metarole.tiledmap.TiledMapMetaRole;
+import kidridicarus.common.role.tiledmap.TiledMapMetaRole;
 import kidridicarus.game.MyKidRidicarus;
 
 public class InstructionsScreen implements Screen {
 	private MyKidRidicarus game;
+	private OrthogonalTiledMapRenderer tileRenderer;
 	private OrthographicCamera gamecam;
 	private Viewport viewport;
 	private Stage stage;
@@ -37,6 +43,7 @@ public class InstructionsScreen implements Screen {
 	public InstructionsScreen(MyKidRidicarus game, String nextLevelFilename) {
 		this.game = game;
 		this.nextLevelFilename = nextLevelFilename;
+		tileRenderer = new OrthogonalTiledMapRenderer(null, UInfo.P2M(1f), game.batch);
 		goRedTeamGo = false;
 
 		gamecam = new OrthographicCamera();
@@ -58,8 +65,36 @@ public class InstructionsScreen implements Screen {
 		// run a second update for the map to create the other agents (e.g. player spawner, rooms)
 		game.story.update(1f/60f);
 
-		myEye = new Eye(game.batch, gamecam);
+		myEye = createEye(game.batch, gamecam);
 		game.story.setEye(myEye);
+	}
+
+	private Eye createEye(final Batch batch, final OrthographicCamera camera) {
+		return new Eye() {
+			@Override
+			public void setViewCenter(Vector2 viewCenter) {
+				camera.position.set(viewCenter, 0f);
+				camera.update();
+				tileRenderer.setView(camera);
+				batch.setProjectionMatrix(camera.combined);
+			}
+			@Override
+			public void draw(Sprite spr) { spr.draw(batch); }
+			@Override
+			public void draw(TiledMapTileLayer layer) { tileRenderer.renderTileLayer(layer); }
+			@Override
+			public void begin() { batch.begin(); }
+			@Override
+			public void end() { batch.end(); }
+			@Override
+			public boolean isDrawing() { return batch.isDrawing(); }
+			// it is a bit odd to create Stage here
+			@Override
+			public Stage createStage() {
+				return new Stage(new FitViewport(CommonInfo.V_WIDTH, CommonInfo.V_HEIGHT, new OrthographicCamera()),
+						batch);
+			}
+		};
 	}
 
 	private void setupStage() {
@@ -114,6 +149,7 @@ public class InstructionsScreen implements Screen {
 
 	@Override
 	public void show() {
+		// this method is purposely empty
 	}
 
 	@Override
@@ -151,14 +187,17 @@ public class InstructionsScreen implements Screen {
 
 	@Override
 	public void pause() {
+		// this method is purposely empty
 	}
 
 	@Override
 	public void resume() {
+		// this method is purposely empty
 	}
 
 	@Override
 	public void hide() {
+		// this method is purposely empty
 	}
 
 	@Override
@@ -166,5 +205,6 @@ public class InstructionsScreen implements Screen {
 		Gdx.input.setInputProcessor(oldInPr);
 		stage.dispose();
 		game.story.removeAllRoles();
+		tileRenderer.dispose();
 	}
 }

@@ -13,13 +13,4 @@ public class DesktopLauncher {
 		config.height = CommonInfo.V_HEIGHT * CommonInfo.DESKTOP_SCALE;
 		new LwjglApplication(new MyKidRidicarus(), config);
 	}
-
-/*	public static void main (String[] arg) {
-		TestContacts x = new TestContacts();
-	}
-*/
-/*	public static void main (String[] arg) {
-		TestFinal x = new TestFinal();
-	}
-*/
 }

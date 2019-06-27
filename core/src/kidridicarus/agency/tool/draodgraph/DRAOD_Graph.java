@@ -3,6 +3,8 @@ package kidridicarus.agency.tool.draodgraph;
 import java.util.HashSet;
 import java.util.LinkedList;
 
+import kidridicarus.agency.tool.DoIt;
+
 /*
  * Disconnected Requirement And Order Dependency Graph (DRAOD Graph)
  * ? Disconnected Requirement Order And Dependency Graph ?
@@ -40,7 +42,7 @@ public class DRAOD_Graph {
 	}
 
 	// all nodes created by this method are root nodes
-	public DepNode createNode(DepResolver resolver) {
+	public DepNode createNode(DoIt resolver) {
 		// TODO is it reasonable/necessary to create node with null resolver?
 		if(resolver == null)
 			throw new IllegalArgumentException("Cannot create dependency node with resolver equal to null.");
@@ -180,7 +182,7 @@ public class DRAOD_Graph {
 		}
 		// outer resolve this node if it is in the set of nodes to be resolved
 		if(isFullResolve || node.isOrderDirty)
-			node.resolver.resolve();
+			node.resolver.doIt();
 	}
 
 	/*

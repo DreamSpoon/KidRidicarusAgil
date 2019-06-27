@@ -25,26 +25,6 @@ public class MoveAdvice4x2 {
 		action1 = false;
 	}
 
-	public void set(MoveAdvice4x2 other) {
-		this.moveRight = other.moveRight;
-		this.moveUp = other.moveUp;
-		this.moveLeft = other.moveLeft;
-		this.moveDown = other.moveDown;
-		this.action0 = other.action0;
-		this.action1 = other.action1;
-	}
-
-	public MoveAdvice4x2 cpy() {
-		MoveAdvice4x2 temp = new MoveAdvice4x2();
-		temp.moveRight = this.moveRight;
-		temp.moveUp = this.moveUp;
-		temp.moveLeft = this.moveLeft;
-		temp.moveDown = this.moveDown;
-		temp.action0 = this.action0;
-		temp.action1 = this.action1;
-		return temp;
-	}
-
 	/*
 	 * Returns a Direction4 object based on the current state of the move advice (right, up, left, down).
 	 * Returns null if move advice is all false (i.e. no move right, no move up, etc.) or if move advice is

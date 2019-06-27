@@ -8,7 +8,7 @@ import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.agentsprite.AgentSprite;
 import kidridicarus.agency.agentsprite.SpriteFrameInput;
-import kidridicarus.common.info.CommonInfo;
+import kidridicarus.common.info.QCC;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.SprFrameTool;
@@ -155,7 +155,7 @@ class PitSprite extends AgentSprite {
 					climbAnimTimer += frameInput.frameTime.timeDelta;
 				// if climbing down then reverse the animation
 				else if(myFrameInput.climbDir == Direction4.DOWN) {
-					climbAnimTimer = CommonInfo.ensurePositive(climbAnimTimer - frameInput.frameTime.timeDelta,
+					climbAnimTimer = QCC.ensurePositive(climbAnimTimer - frameInput.frameTime.timeDelta,
 							climbAnim[getGrpForDmgTimer()].getAnimationDuration());
 				}
 				setRegion(climbAnim[getGrpForDmgTimer()].getKeyFrame(climbAnimTimer));

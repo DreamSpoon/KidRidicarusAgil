@@ -41,25 +41,12 @@ public class CommonInfo {
 
 	public static class UpdateOrder {
 		// update first
-		public static final float PRE_AGENCY_UPDATE = -9000f;
-		public static final float PRE_MOVE_UPDATE = 0f;
-		public static final float MOVE_UPDATE = 1f;
-		public static final float POST_MOVE_UPDATE = 2f;
-		public static final float POST_AGENCY_UPDATE = 9000f;
+		public static final float PLAY_CONTROL_PREUPDATE = 1f;
+		public static final float SCRIPT_UPDATE = 2f;
+		public static final float PRE_MOVE_UPDATE = 3f;
+		public static final float MOVE_UPDATE = 4f;
+		public static final float POST_MOVE_UPDATE = 5f;
+		public static final float PLAY_CONTROL_POSTUPDATE = 6f;
 		// update last
-	}
-
-	/*
-	 * Returns 0 or a positive value.
-	 * Used to check that the time passed to animation's getKeyFrame is positive, even when the time is
-	 * running backwards.
-	 */
-	public static float ensurePositive(float original, float delta) {
-		if(original >= 0f)
-			return original;
-
-		if(delta == 0f)
-			return 0f;
-		return (float) (original + (-Math.floor(original / delta))*delta);
 	}
 }

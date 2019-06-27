@@ -18,7 +18,7 @@ public class Story implements Disposable {
 	private Agency agency;
 	private StoryHooks panStoryHooks;
 
-	public Story(RoleClassList allRolesClassList, TextureAtlas atlas) {
+	public Story(TextureAtlas atlas, RoleClassList allRolesClassList) {
 		this.allRolesClassList = allRolesClassList;
 		this.agency = new Agency(atlas);
 		this.panStoryHooks = new StoryHooks(this);

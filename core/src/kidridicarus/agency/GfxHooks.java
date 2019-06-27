@@ -3,19 +3,22 @@ package kidridicarus.agency;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 
 import kidridicarus.agency.tool.Eye;
+import kidridicarus.agency.tool.EyePlug;
 
 public class GfxHooks {
-	private final Agency myAgency;
+	private TextureAtlas atlas;
+	private EyePlug eyePlug;
 
-	GfxHooks(Agency agency) {
-		this.myAgency = agency;
+	GfxHooks(TextureAtlas atlas, EyePlug eyePlug) {
+		this.atlas = atlas;
+		this.eyePlug = eyePlug;
 	}
 
 	public TextureAtlas getAtlas() {
-		return myAgency.panAtlas;
+		return atlas;
 	}
 
 	public Eye getEye() {
-		return myAgency.myEye;
+		return eyePlug.getEye();
 	}
 }

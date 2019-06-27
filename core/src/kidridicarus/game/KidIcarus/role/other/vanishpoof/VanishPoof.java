@@ -1,6 +1,5 @@
 package kidridicarus.game.KidIcarus.role.other.vanishpoof;
 
-import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.Agent.AgentDrawListener;
@@ -10,22 +9,24 @@ import kidridicarus.agency.tool.Eye;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
-import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.tool.SprFrameTool;
 import kidridicarus.game.KidIcarus.KidIcarusKV;
+import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.tool.RP_Tool;
 
-public class VanishPoof extends CorpusRole {
+public class VanishPoof extends Role {
 	private static final float POOF_TIME = 2/5f;
 
+	private Vector2 position;
 	private VanishPoofSprite sprite;
 	private float stateTimer;
 
 	public VanishPoof(RoleHooks roleHooks, ObjectProperties properties) {
 		super(roleHooks, properties);
+		this.position = RP_Tool.getCenter(properties);
 		stateTimer = 0f;
-		sprite = new VanishPoofSprite(myGfxHooks.getAtlas(), RP_Tool.getCenter(properties),
+		sprite = new VanishPoofSprite(myGfxHooks.getAtlas(), position,
 				properties.getBoolean(KidIcarusKV.KEY_IS_BIG, false));
 		myAgentHooks.addUpdateListener(CommonInfo.UpdateOrder.MOVE_UPDATE, new AgentUpdateListener() {
 				@Override
@@ -43,17 +44,7 @@ public class VanishPoof extends CorpusRole {
 			myAgentHooks.removeThisAgent();
 			return null;
 		}
-		return SprFrameTool.placeAnim(getPosition(), frameTime);
-	}
-
-	@Override
-	protected Vector2 getPosition() {
-		return new Vector2(sprite.getX()+sprite.getWidth()/2f, sprite.getY()+sprite.getHeight()/2f);
-	}
-
-	@Override
-	protected Rectangle getBounds() {
-		return new Rectangle(sprite.getX(), sprite.getY(), sprite.getWidth(), sprite.getHeight());
+		return SprFrameTool.placeAnim(position, frameTime);
 	}
 
 	public static ObjectProperties makeRP(Vector2 position, boolean isBig) {

@@ -55,7 +55,7 @@ public class GameOverScreen implements Screen {
 	}
 
 	private class MyLittleInPr implements InputProcessor {
-		private boolean a() { return didAnythingHappen = true; }
+		private boolean a() { didAnythingHappen = true; return true; }
 		// return true for all the following to relay that the event was handled
 		@Override
 		public boolean keyDown(int keycode) { return a(); }
@@ -77,6 +77,7 @@ public class GameOverScreen implements Screen {
 
 	@Override
 	public void show() {
+		// this method is purposely empty
 	}
 
 	@Override
@@ -98,14 +99,17 @@ public class GameOverScreen implements Screen {
 
 	@Override
 	public void pause() {
+		// this method is purposely empty
 	}
 
 	@Override
 	public void resume() {
+		// this method is purposely empty
 	}
 
 	@Override
 	public void hide() {
+		// this method is purposely empty
 	}
 
 	@Override

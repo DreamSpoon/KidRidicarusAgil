@@ -2,14 +2,15 @@ package kidridicarus.game.KidIcarus.role.player.pit;
 
 import java.util.LinkedList;
 
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.agentsprite.SpriteFrameInput;
 import kidridicarus.agency.tool.FrameTime;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.powerup.PowChar;
-import kidridicarus.common.powerup.Powerup;
-import kidridicarus.common.role.playerrole.PlayerRoleSupervisor;
+import kidridicarus.common.role.powerup.PowChar;
+import kidridicarus.common.role.powerup.Powerup;
+import kidridicarus.common.role.powerup.PowerupList;
 import kidridicarus.common.role.roombox.RoomBox;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.MoveAdvice4x2;
@@ -17,8 +18,10 @@ import kidridicarus.game.KidIcarus.KidIcarusAudio;
 import kidridicarus.game.KidIcarus.KidIcarusPow;
 import kidridicarus.game.KidIcarus.role.player.pitarrow.PitArrow;
 import kidridicarus.story.RoleHooks;
+import kidridicarus.story.rolescript.ScriptedBodyState;
 import kidridicarus.story.rolescript.ScriptedRoleState;
 import kidridicarus.story.rolescript.ScriptedSpriteState;
+import kidridicarus.story.rolescript.ScriptedSpriteState.SpriteState;
 
 class PitBrain {
 	private static final int MAX_HEARTS_COLLECTED = 999;
@@ -51,8 +54,7 @@ class PitBrain {
 
 	private Pit parent;
 	private RoleHooks parentRoleHooks;
-	private PitSpine spine;
-	private PlayerRoleSupervisor supervisor;
+	private PitBody body;
 	private MoveState moveState;
 	private float moveStateTimer;
 	private boolean isFacingRight;
@@ -68,16 +70,20 @@ class PitBrain {
 	private int heartsCollected;
 	private int health;
 	private RoomBox lastKnownRoom;
+	private boolean isRunningScript;
+	private ScriptedRoleState scriptedFrameState;
+	private MoveAdvice4x2 playFrameMove;
+	private PowerupList nonCharPowerupList;
+	private boolean isGameOver;
 
-	PitBrain(Pit parent, RoleHooks parentRoleHooks, PitSpine spine, boolean isFacingRight, Integer health,
+	PitBrain(Pit parent, RoleHooks parentRoleHooks, PitBody body, boolean isFacingRight, Integer health,
 			Integer heartsCollected) {
 		this.parent = parent;
 		this.parentRoleHooks = parentRoleHooks;
-		this.spine = spine;
+		this.body = body;
 		this.isFacingRight = isFacingRight;
 		this.health = health != null ? health : START_HEALTH;
 		this.heartsCollected = heartsCollected != null ? heartsCollected :  0;
-		supervisor = new PlayerRoleSupervisor(parent, parentRoleHooks);
 		moveState = MoveState.STAND;
 		moveStateTimer = 0f;
 		isNextJumpAllowed = false;	// false until land on solid ground
@@ -89,6 +95,27 @@ class PitBrain {
 		noDamageCooldown = 0f;
 		takeDamageThisFrame = false;
 		lastKnownRoom = null;
+		isRunningScript = false;
+		scriptedFrameState = null;
+		playFrameMove = null;
+		nonCharPowerupList = new PowerupList();
+		isGameOver = false;
+	}
+
+	void setScriptEnabled(boolean enabled) {
+		this.isRunningScript = enabled;
+	}
+
+	boolean isScriptEnabled() {
+		return isRunningScript;
+	}
+
+	boolean isScriptOverrideAllowed() {
+		return scriptedFrameState.isOverrideAllowed;
+	}
+
+	void setScriptedFrameState(ScriptedRoleState frameState) {
+		this.scriptedFrameState = frameState;
 	}
 
 	/*
@@ -97,23 +124,36 @@ class PitBrain {
 	 */
 	void processContactFrame() {
 		// update last known room if not dead, so dead player moving through other RoomBoxes won't cause problems
-		if(moveState != MoveState.DEAD && spine.getCurrentRoom() != null)
-			lastKnownRoom = spine.getCurrentRoom();
+		if(moveState != MoveState.DEAD && body.getCurrentRoom() != null)
+			lastKnownRoom = body.getCurrentRoom();
+	}
+
+	void setPlayFrameMove(MoveAdvice4x2 moveAdvice) {
+		this.playFrameMove = moveAdvice;
 	}
 
 	SpriteFrameInput processFrame(FrameTime frameTime) {
-		// if a script is running with no move advice then apply scripted body state and exit
-		if(supervisor.isRunningScriptNoMoveAdvice()) {
-			ScriptedRoleState scriptedState = supervisor.getScriptRoleState();
-			spine.useScriptedBodyState(scriptedState.scriptedBodyState);
-			isFacingRight = scriptedState.scriptedSpriteState.isFacingRight;
-			// return null if scripted sprite is not visible
-			if(!supervisor.getScriptRoleState().scriptedSpriteState.visible)
-				return null;
-			return getScriptedSpriteFrameInput(supervisor.getScriptRoleState().scriptedSpriteState, frameTime);
+		// assume play move advice exists, and try to disprove this assumption
+		MoveAdvice4x2 moveAdvice = playFrameMove;
+		if(isRunningScript) {
+			// if the script doesn't have play move advice then apply the script state and exit
+			if(scriptedFrameState.scriptedMoveAdvice == null) {
+				if(scriptedFrameState.scriptedBodyState != null)
+					body.useScriptedBodyState(scriptedFrameState.scriptedBodyState);
+				if(scriptedFrameState.scriptedSpriteState != null) {
+					isFacingRight = scriptedFrameState.scriptedSpriteState.isFacingRight;
+					// return null if scripted sprite is not visible
+					if(!scriptedFrameState.scriptedSpriteState.visible)
+						return null;
+				}
+				return getScriptedSpriteFrameInput(scriptedFrameState.scriptedSpriteState, frameTime);
+			}
+			// otherwise apply the scripted play move advice
+			moveAdvice = scriptedFrameState.scriptedMoveAdvice;
 		}
-
-		MoveAdvice4x2 moveAdvice = supervisor.pollMoveAdvice();
+		// if no script running and play move advice is null then use default move advice
+		else if(moveAdvice == null)
+			moveAdvice = new MoveAdvice4x2();
 
 		processPowerupsReceived();
 		processDamageTaken(frameTime);
@@ -123,7 +163,10 @@ class PitBrain {
 		if(nextMoveState == MoveState.DEAD)
 			processDeadMove(moveStateChanged);
 		else {
-			spine.checkDoBodySizeChange(nextMoveState.isDuck());
+			if(moveState.isDuck() && !nextMoveState.isDuck())
+				body.setDuckingForm(false);
+			else if(!moveState.isDuck() && nextMoveState.isDuck())
+				body.setDuckingForm(true);
 
 			if(nextMoveState.isGround())
 				processGroundMove(moveAdvice, nextMoveState);
@@ -131,9 +174,9 @@ class PitBrain {
 				processAirMove(frameTime, moveAdvice, nextMoveState);
 
 			// check/do facing direction change
-			if(spine.isWalkingRight())
+			if(body.hasWalkVelocityInDir(Direction4.RIGHT))
 				isFacingRight = true;
-			else if(spine.isWalkingLeft())
+			else if(body.hasWalkVelocityInDir(Direction4.LEFT))
 				isFacingRight = false;
 
 			processShoot(frameTime, moveAdvice);
@@ -148,24 +191,26 @@ class PitBrain {
 			moveStateTimer = moveState != nextMoveState ? 0f : moveStateTimer+frameTime.timeDelta;
 		moveState = nextMoveState;
 
-		return new PitSpriteFrameInput(spine.getPosition(), isFacingRight, frameTime, moveState,
+		return new PitSpriteFrameInput(body.getPosition(), isFacingRight, frameTime, moveState,
 				(noDamageCooldown > 0f), (shootCooldownTimer > 0f), isOnGroundHeadInTile,
-				spine.isMovingInDir(Direction4.UP), Direction4.NONE);
+				body.hasVelocityInDir(Direction4.UP, UInfo.VEL_EPSILON), Direction4.NONE);
 	}
 
 	private SpriteFrameInput getScriptedSpriteFrameInput(ScriptedSpriteState sss, FrameTime frameTime) {
-		MoveState scriptedMoveState;
-		switch(sss.spriteState) {
-			case MOVE:
-				scriptedMoveState = MoveState.WALK;
-				break;
-			case CLIMB:
-				scriptedMoveState = MoveState.CLIMB;
-				break;
-			case STAND:
-			default:
-				scriptedMoveState = MoveState.STAND;
-				break;
+		MoveState scriptedMoveState = MoveState.STAND;
+		if(sss.spriteState != null) {
+			switch(sss.spriteState) {
+				case MOVE:
+					scriptedMoveState = MoveState.WALK;
+					break;
+				case CLIMB:
+					scriptedMoveState = MoveState.CLIMB;
+					break;
+				case STAND:
+				default:
+					scriptedMoveState = MoveState.STAND;
+					break;
+			}
 		}
 		return new PitSpriteFrameInput(sss.position, sss.isFacingRight, frameTime, scriptedMoveState, false, false,
 				false, false, sss.moveDir);
@@ -178,7 +223,7 @@ class PitBrain {
 
 	private void processDamageTaken(FrameTime frameTime) {
 		// check for contact with scroll kill box (insta-kill)
-		if(spine.isContactScrollKillBox()) {
+		if(body.isContactDespawn()) {
 			health = 0;
 			return;
 		}
@@ -212,17 +257,19 @@ class PitBrain {
 			else if(pu instanceof KidIcarusPow.ChaliceHealthPow)
 				addHealth(((KidIcarusPow.ChaliceHealthPow) pu).getHealAmount());
 			else if(pu.getPowerupCharacter() != PowChar.PIT)
-				supervisor.receiveNonCharPowerup(pu);
+				nonCharPowerupList.add(pu);
 		}
 		powerupsReceived.clear();
 	}
 
 	private MoveState getNextMoveState(MoveAdvice4x2 moveAdvice) {
-		if(moveState == MoveState.DEAD || spine.isContactDespawn() || health <= 0)
+		if(moveState == MoveState.DEAD || body.isContactDespawn() || health <= 0)
 			return MoveState.DEAD;
 		// if [on ground flag is true] and agent isn't [moving upward while in air move state], then do ground move
-		else if(spine.isOnGround() && !(spine.isMovingInDir(Direction4.UP) && !moveState.isGround()))
+		else if(body.isOnGround() && !(body.hasVelocityInDir(Direction4.UP, UInfo.VEL_EPSILON) &&
+				!moveState.isGround())) {
 			return getNextMoveStateGround(moveAdvice);
+		}
 		// do air move
 		else
 			return getNextMoveStateAir(moveAdvice);
@@ -247,7 +294,8 @@ class PitBrain {
 		else if(moveAdvice.moveUp)
 			return MoveState.AIMUP;
 		// if advised move horizontally, or if already moving horizontally, then return RUN
-		else if(moveAdvice.moveRight || moveAdvice.moveLeft || !spine.isStandingStill())
+		else if(moveAdvice.moveRight || moveAdvice.moveLeft ||
+				!body.hasWalkVelocityInDir(Direction4.NONE))
 			return MoveState.WALK;
 		else
 			return MoveState.STAND;
@@ -275,13 +323,13 @@ class PitBrain {
 	private void processDeadMove(boolean moveStateChanged) {
 		// if newly dead then disable contacts and start dead sound
 		if(moveStateChanged) {
-			spine.applyDead();
+			body.applyDeadContacts();
 			parentRoleHooks.agentHooksBundle.audioHooks.getEar().stopAllMusic();
 			parentRoleHooks.agentHooksBundle.audioHooks.getEar().startSinglePlayMusic(KidIcarusAudio.Music.PIT_DIE);
 		}
 		// ... and if died a long time ago then do game over
 		else if(moveStateTimer > DEAD_DELAY_TIME)
-				supervisor.setGameOver();
+			isGameOver = true;
 		// ... else do nothing.
 	}
 
@@ -291,7 +339,7 @@ class PitBrain {
 			isNextJumpAllowed = true;
 
 		// update the "head-in-tile" flag, will be used by sprite for correct sprite offset
-		isOnGroundHeadInTile = spine.isHeadInTile();
+		isOnGroundHeadInTile = body.isHeadInTile();
 
 		Direction4 moveDir = Direction4.NONE;
 		switch(nextMoveState) {
@@ -305,7 +353,7 @@ class PitBrain {
 					moveDir = Direction4.LEFT;
 
 				// if head is in tile and body is not moving, then facing direction can change
-				if(isOnGroundHeadInTile && spine.isStandingStill()) {
+				if(isOnGroundHeadInTile && body.hasWalkVelocityInDir(Direction4.NONE)) {
 					if(moveAdvice.moveRight)
 						isFacingRight = true;
 					else if(moveAdvice.moveLeft)
@@ -318,7 +366,7 @@ class PitBrain {
 				// avoid problems with vertical moving platforms - still problems with horizontally moving
 				// platforms though - unless zeroVelocity checks for relative velocity and uses relative zero?
 				// TODO !
-				spine.zeroVelocity(true, false);
+				body.zeroVelocity(true, false);
 				if(moveAdvice.moveRight)
 					isFacingRight = true;
 				else if(moveAdvice.moveLeft)
@@ -332,11 +380,11 @@ class PitBrain {
 		boolean disableHMove = !nextMoveState.isDuck() && isOnGroundHeadInTile;
 		// move right advice takes priority over move left advice, but disable move is highest priority
 		if(!disableHMove && moveDir == Direction4.RIGHT)
-			spine.applyWalkMove(true);
+			body.applyWalkMove(true);
 		else if(!disableHMove && moveDir == Direction4.LEFT)
-			spine.applyWalkMove(false);
+			body.applyWalkMove(false);
 		else
-			spine.applyStopMove();
+			body.applyStopMove();
 	}
 
 	private void processAirMove(FrameTime frameTime, MoveAdvice4x2 moveAdvice, MoveState nextMoveState) {
@@ -349,11 +397,11 @@ class PitBrain {
 				if(moveState.isGround() && moveAdvice.action1) {
 					isNextJumpAllowed = false;
 					jumpForceTimer = PRE_JUMP_TIME+JUMPUP_FORCE_TIME;
-					spine.applyJumpVelocity();
+					body.applyJumpVelocity();
 					parentRoleHooks.agentHooksBundle.audioHooks.getEar().playSound(KidIcarusAudio.Sound.Pit.JUMP);
 				}
 				else if(moveStateTimer <= PRE_JUMP_TIME)
-					spine.applyJumpVelocity();
+					body.applyJumpVelocity();
 				break;
 			case JUMP:
 			case JUMP_DUCK:
@@ -365,21 +413,21 @@ class PitBrain {
 
 				// if jump force continues and jump is advised then do jump force
 				if(jumpForceTimer > 0f && moveAdvice.action1)
-					spine.applyJumpForce(jumpForceTimer-PRE_JUMP_TIME, JUMPUP_FORCE_TIME);
+					body.applyJumpForce(jumpForceTimer-PRE_JUMP_TIME, JUMPUP_FORCE_TIME);
 				break;
 			default:
 				throw new IllegalStateException("Wrong air nextMoveState = " + nextMoveState);
 		}
 
 		// disallow jump force until next jump if [jump advice stops] or [body stops moving up]
-		if(!moveAdvice.action1 || !spine.isMovingInDir(Direction4.UP))
+		if(!moveAdvice.action1 || !body.hasVelocityInDir(Direction4.UP, UInfo.VEL_EPSILON))
 			jumpForceTimer = 0f;
 
 		// move right advice takes priority over move left advice
 		if(moveAdvice.moveRight)
-			spine.applyAirMove(true);
+			body.applyAirMove(true);
 		else if(moveAdvice.moveLeft)
-			spine.applyAirMove(false);
+			body.applyAirMove(false);
 
 		// decrement jump force timer
 		jumpForceTimer = jumpForceTimer > frameTime.timeDelta ? jumpForceTimer-frameTime.timeDelta : 0f;
@@ -412,20 +460,20 @@ class PitBrain {
 			arrowDir = Direction4.UP;
 			velocity.set(0f, SHOT_VEL);
 			if(isFacingRight)
-				position.set(SHOT_OFFSET_UP).add(spine.getPosition());
+				position.set(SHOT_OFFSET_UP).add(body.getPosition());
 			else
-				position.set(SHOT_OFFSET_UP).scl(-1, 1).add(spine.getPosition());
+				position.set(SHOT_OFFSET_UP).scl(-1, 1).add(body.getPosition());
 		}
 		else {
 			if(isFacingRight) {
 				arrowDir = Direction4.RIGHT;
 				velocity.set(SHOT_VEL, 0f);
-				position.set(SHOT_OFFSET_RIGHT).add(spine.getPosition());
+				position.set(SHOT_OFFSET_RIGHT).add(body.getPosition());
 			}
 			else {
 				arrowDir = Direction4.LEFT;
 				velocity.set(-SHOT_VEL, 0f);
-				position.set(SHOT_OFFSET_RIGHT).scl(-1, 1).add(spine.getPosition());
+				position.set(SHOT_OFFSET_RIGHT).scl(-1, 1).add(body.getPosition());
 			}
 
 			if(isOnGroundHeadInTile)
@@ -434,20 +482,8 @@ class PitBrain {
 
 		// create shot; if the spawn point of shot is in a solid tile then the shot must show for a short time
 		parentRoleHooks.storyHooks.createRole(PitArrow.makeRP(parent, position, velocity, arrowDir,
-				spine.isMapPointSolid(position)));
+				body.isMapPointSolid(position)));
 		parentRoleHooks.agentHooksBundle.audioHooks.getEar().playSound(KidIcarusAudio.Sound.Pit.SHOOT);
-	}
-
-	Vector2 getPosition() {
-		// use the "real" position of Pit, which is independent of body size, to improve smooth screen scroll
-		Vector2 offset = new Vector2(0f, 0f);
-		if(isOnGroundHeadInTile || moveState.isDuck())
-			offset.set(DUCK_POS_OFFSET);
-		return spine.getPosition().cpy().add(offset);
-	}
-
-	RoomBox getCurrentRoom() {
-		return lastKnownRoom;
 	}
 
 	boolean onTakeDamage() {
@@ -465,8 +501,16 @@ class PitBrain {
 		return true;
 	}
 
-	PlayerRoleSupervisor getSupervisor() {
-		return supervisor;
+	Vector2 getPosition() {
+		// use the "real" position of Pit, which is independent of body size, to improve smooth screen scroll
+		Vector2 offset = new Vector2(0f, 0f);
+		if(isOnGroundHeadInTile || moveState.isDuck())
+			offset.set(DUCK_POS_OFFSET);
+		return body.getPosition().cpy().add(offset);
+	}
+
+	RoomBox getCurrentRoom() {
+		return lastKnownRoom;
 	}
 
 	boolean isFacingRight() {
@@ -479,5 +523,26 @@ class PitBrain {
 
 	Integer getHeartsCollected() {
 		return heartsCollected;
+	}
+
+	PowerupList getNonCharPowerupList() {
+		return nonCharPowerupList;
+	}
+
+	boolean isGameOver() {
+		return isGameOver;
+	}
+
+	Rectangle getBounds() {
+		return body.getBounds();
+	}
+
+	ScriptedRoleState getScriptedRoleState() {
+		ScriptedRoleState roleState = new ScriptedRoleState();
+		roleState.scriptedBodyState = new ScriptedBodyState(true, PitBody.GRAVITY_SCALE, body.getPosition(),
+				body.getVelocity());
+		roleState.scriptedSpriteState = new ScriptedSpriteState(SpriteState.STAND, body.getPosition(), true,
+				isFacingRight, Direction4.NONE);
+		return roleState;
 	}
 }

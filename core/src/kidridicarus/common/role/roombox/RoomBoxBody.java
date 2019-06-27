@@ -3,25 +3,41 @@ package kidridicarus.common.role.roombox;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
+import kidridicarus.agency.AgentFilter;
 import kidridicarus.agency.PhysicsHooks;
-import kidridicarus.agency.agentbody.CFBitSeq;
-import kidridicarus.common.info.CommonCF;
+import kidridicarus.agency.tool.FilterBitSet;
+import kidridicarus.common.info.CommonCF.ACFB;
 import kidridicarus.common.tool.ABodyFactory;
-import kidridicarus.story.Role;
 import kidridicarus.story.rolebody.RoleBody;
 
 class RoomBoxBody extends RoleBody {
-	private static final CFBitSeq CFCAT_BITS = new CFBitSeq(CommonCF.Alias.ROOM_BIT);
-	private static final CFBitSeq CFMASK_BITS = new CFBitSeq(true);
 	private static final float GRAVITY_SCALE = 0;
 
-	RoomBoxBody(Role parentRole, PhysicsHooks physHooks, Rectangle bounds) {
+	private Vector2 boundSize;
+
+	RoomBoxBody(PhysicsHooks physHooks, Rectangle bounds) {
 		super(physHooks);
-		// set body size info and create new body
-		setBoundsSize(bounds.width, bounds.height);
-		agentBody = ABodyFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()));
-		agentBody.setGravityScale(GRAVITY_SCALE);
-		ABodyFactory.makeSensorBoxFixture(agentBody, CFCAT_BITS, CFMASK_BITS, parentRole,
+		this.boundSize = bounds.getSize(new Vector2());
+		this.agentBody = ABodyFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()));
+		this.agentBody.setGravityScale(GRAVITY_SCALE);
+		ABodyFactory.makeSensorBoxFixture(agentBody, new AgentFilter(
+				new FilterBitSet(ACFB.ROOM_GIVEBIT), new FilterBitSet(ACFB.ROOM_TAKEBIT)),
 				bounds.width, bounds.height);
+	}
+
+	float getLeftX() {
+		return agentBody.getPosition().x - boundSize.x/2f;
+	}
+
+	float getRightX() {
+		return agentBody.getPosition().x + boundSize.x/2f;
+	}
+
+	float getBottomY() {
+		return agentBody.getPosition().y - boundSize.y/2f;
+	}
+
+	float getTopY() {
+		return agentBody.getPosition().y + boundSize.y/2f;
 	}
 }

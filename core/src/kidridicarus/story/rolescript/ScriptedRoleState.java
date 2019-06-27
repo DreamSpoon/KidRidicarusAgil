@@ -13,24 +13,27 @@ public class ScriptedRoleState {
 	public MoveAdvice4x2 scriptedMoveAdvice;
 	public ScriptedBodyState scriptedBodyState;
 	public ScriptedSpriteState scriptedSpriteState;
+	public boolean isOverrideAllowed;
 
 	public ScriptedRoleState() {
 		// Init move advice to null, to signal that move advice is not being given (so use body and sprite
 		// state instead).
 		scriptedMoveAdvice = null;
-		scriptedBodyState = new ScriptedBodyState();
-		scriptedSpriteState = new ScriptedSpriteState();
+		scriptedBodyState = null;
+		scriptedSpriteState = null;
+		isOverrideAllowed = false;
 	}
 
 	public ScriptedRoleState(MoveAdvice4x2 scriptedMoveAdvice, ScriptedBodyState scriptedBodyState,
-			ScriptedSpriteState scriptedSpriteState) {
+			ScriptedSpriteState scriptedSpriteState, boolean isOverrideAllowed) {
 		this.scriptedMoveAdvice = scriptedMoveAdvice;
 		this.scriptedBodyState = scriptedBodyState;
 		this.scriptedSpriteState = scriptedSpriteState;
+		this.isOverrideAllowed = isOverrideAllowed;
 	}
 
 	public ScriptedRoleState cpy() {
-		return new ScriptedRoleState(this.scriptedMoveAdvice, new ScriptedBodyState(this.scriptedBodyState),
-				new ScriptedSpriteState(this.scriptedSpriteState));
+		return new ScriptedRoleState(this.scriptedMoveAdvice, this.scriptedBodyState.cpy(),
+				this.scriptedSpriteState.cpy(), this.isOverrideAllowed);
 	}
 }

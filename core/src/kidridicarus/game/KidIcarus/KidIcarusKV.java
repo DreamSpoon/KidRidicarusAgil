@@ -5,6 +5,7 @@ public class KidIcarusKV {
 		public static final String VAL_ANGEL_HEART = "angel_heart";
 		public static final String VAL_CHALICE_HEALTH = "chalice_health";
 		public static final String VAL_DOOR = "kid_icarus_door";
+		public static final String VAL_DOOR_SCRIPT = "kid_icarus_door_script";
 		public static final String VAL_MONOEYE = "monoeye";
 		public static final String VAL_PIT = "pit";
 		public static final String VAL_PIT_ARROW = "pit_arrow";

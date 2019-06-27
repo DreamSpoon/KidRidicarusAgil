@@ -4,60 +4,50 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
 import kidridicarus.agency.AgentBody;
+import kidridicarus.agency.AgentFilter;
+import kidridicarus.agency.AgentFixture;
 import kidridicarus.agency.PhysicsHooks;
-import kidridicarus.agency.agentbody.CFBitSeq;
 import kidridicarus.agency.agentjoint.AgentMouseJoint;
 import kidridicarus.agency.agentjoint.AgentMouseJointDef;
-import kidridicarus.common.info.CommonCF;
 import kidridicarus.common.info.UInfo;
 import kidridicarus.common.tool.ABodyFactory;
 import kidridicarus.story.rolebody.RoleBody;
 
 public abstract class FollowBoxBody extends RoleBody {
-	protected abstract CFBitSeq getCatBits();
-	protected abstract CFBitSeq getMaskBits();
+	protected abstract AgentFixture createAgentFixture(Vector2 size);
 
+	private static final float GRAVITY_SCALE = 0f;
 	// if the target position is at least this far away from the current position then reset the b2body
 	// TODO: is 50 pixels right?
 	private static final float RESET_DIST = UInfo.P2M(50);
 
-	private Object sensorBoxUserData;
+	protected AgentFixture agentFixture;
 	private AgentMouseJoint mj;
-	private boolean isSensor;
+	private Vector2 boundSize;
 
-	public FollowBoxBody(PhysicsHooks physHooks, Rectangle bounds, boolean isSensor, Object sensorBoxUserData) {
+	public FollowBoxBody(PhysicsHooks physHooks, Rectangle bounds) {
 		super(physHooks);
-		this.isSensor = isSensor;
-		this.physHooks = physHooks;
-		this.sensorBoxUserData = sensorBoxUserData;
-		defineBody(bounds);
+		this.boundSize = bounds.getSize(new Vector2());
+		defineBody(bounds.getCenter(new Vector2()));
 	}
 
-	private void defineBody(Rectangle bounds) {
+	private void defineBody(Vector2 position) {
 		// destroy the old bodies if necessary
 		if(mj != null && mj.getBodyA() != null) {
 			// destroy the temp bodyA used by mouse joint, and the mouse joint
-			physHooks.destroyBody(mj.getBodyA());
+			physHooks.queueDestroyAgentBody(mj.getBodyA());
 		}
 		if(agentBody != null)
-			physHooks.destroyBody(agentBody);
+			physHooks.queueDestroyAgentBody(agentBody);
 		// set body size info and create new body
-		setBoundsSize(bounds.width, bounds.height);
-		createRegBody(physHooks, bounds, getCatBits(), getMaskBits());
-		createMouseJoint(physHooks, bounds.getCenter(new Vector2()));
+		createRegBody(physHooks, position);
+		createMouseJoint(physHooks, position);
 	}
 
-	private void createRegBody(PhysicsHooks physHooks, Rectangle bounds, CFBitSeq catBits, CFBitSeq maskBits) {
-		agentBody = ABodyFactory.makeDynamicBody(physHooks, bounds.getCenter(new Vector2()));
-		agentBody.setGravityScale(0f);
-		if(isSensor) {
-			ABodyFactory.makeSensorBoxFixture(agentBody, catBits, maskBits, sensorBoxUserData,
-					bounds.width, bounds.height);
-		}
-		else {
-			ABodyFactory.makeBoxFixture(agentBody, catBits, maskBits, sensorBoxUserData,
-					bounds.width, bounds.height);
-		}
+	private void createRegBody(PhysicsHooks physHooks, Vector2 position) {
+		agentBody = ABodyFactory.makeDynamicBody(physHooks, position);
+		agentBody.setGravityScale(GRAVITY_SCALE);
+		agentFixture = createAgentFixture(boundSize);
 	}
 
 	// mouse joint allows body to quickly change position without destroying/recreating the body/fixture constantly
@@ -68,8 +58,7 @@ public abstract class FollowBoxBody extends RoleBody {
 
 		// the fake body does not contact anything
 		// TODO is a fixture necessary? can the next line of code be deleted?
-		ABodyFactory.makeSensorBoxFixture(tempA, CommonCF.NO_CONTACT_CFCAT, CommonCF.NO_CONTACT_CFMASK, null,
-				0.01f, 0.01f);
+		ABodyFactory.makeSensorBoxFixture(tempA, new AgentFilter(), 0.01f, 0.01f);
 
 		AgentMouseJointDef amjdef = new AgentMouseJointDef();
 		// this body is supposedly ignored by box2d, but needs to be a valid non-static body (non-sensor also?)
@@ -85,21 +74,10 @@ public abstract class FollowBoxBody extends RoleBody {
 
 	public void setPosition(Vector2 position) {
 		Vector2 diff = position.cpy().sub(agentBody.getPosition());
+		// if target position is too far away from current position, then destroy box body and re-create at target
 		if(diff.len() >= RESET_DIST)
-			resetFollowBoxPosition(position);
-		else
+			defineBody(position);
+		else	// otherwise do regular set target
 			mj.setTarget(position);
-	}
-
-	private void resetFollowBoxPosition(Vector2 position) {
-		Rectangle oldBounds = getBounds();
-		defineBody(new Rectangle(position.x - oldBounds.width/2f, position.y - oldBounds.height/2f,
-				oldBounds.width, oldBounds.height));
-	}
-
-	@Override
-	public void dispose() {
-		physHooks.destroyBody(mj.getBodyA());	// destroy the temp bodyA used by mouse joint
-		super.dispose();
 	}
 }

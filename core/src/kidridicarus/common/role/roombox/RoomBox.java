@@ -2,14 +2,13 @@ package kidridicarus.common.role.roombox;
 
 import com.badlogic.gdx.math.Vector2;
 
-import kidridicarus.agency.AgentRemovalListener.AgentRemovalCallback;
-import kidridicarus.agency.agent.AgentPropertyListener;
+import kidridicarus.agency.AgentPropertyListener;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonInfo;
 import kidridicarus.common.info.CommonKV;
 import kidridicarus.common.info.UInfo;
-import kidridicarus.common.role.general.CorpusRole;
 import kidridicarus.common.tool.Direction4;
+import kidridicarus.story.Role;
 import kidridicarus.story.RoleHooks;
 import kidridicarus.story.tool.RP_Tool;
 
@@ -19,7 +18,7 @@ import kidridicarus.story.tool.RP_Tool;
  * current room music. Also applicable to viewpoint, since the room can specify which way the screen scrolls
  * and if the view should be offset.
  */
-public class RoomBox extends CorpusRole {
+public class RoomBox extends Role {
 	private enum RoomType { CENTER, HSCROLL, VSCROLL }
 	private RoomType roomType;
 	private float viewVerticalOffset;
@@ -27,10 +26,11 @@ public class RoomBox extends CorpusRole {
 	private Float scrollVelocity;
 	private boolean isScrollBoundX;
 	private boolean isScrollBoundY;
+	private RoomBoxBody body;
 
 	public RoomBox(RoleHooks roleHooks, ObjectProperties properties) {
 		super(roleHooks, properties);
-		body = new RoomBoxBody(this, myPhysHooks, RP_Tool.getBounds(properties));
+		body = new RoomBoxBody(myPhysHooks, RP_Tool.getBounds(properties));
 		roomType = RoomType.CENTER;
 		String roomTypeStr = properties.getString(CommonKV.Room.KEY_TYPE, "");
 		if(roomTypeStr.equals(CommonKV.Room.VAL_TYPE_SCROLL_X))
@@ -46,12 +46,6 @@ public class RoomBox extends CorpusRole {
 			scrollVelocity = UInfo.P2M(scrollVelocity);
 		isScrollBoundX = properties.getBoolean(CommonKV.Room.KEY_SCROLL_BOUND_X, false);
 		isScrollBoundY = properties.getBoolean(CommonKV.Room.KEY_SCROLL_BOUND_Y, false);
-		myAgentHooks.createInternalRemovalListener(new AgentRemovalCallback() {
-				@Override
-				public void preAgentRemoval() { dispose(); }
-				@Override
-				public void postAgentRemoval() {}
-			});
 		final String roomMusicStr = properties.getString(CommonKV.Room.KEY_MUSIC, null);
 		if(roomMusicStr != null) {
 			myAudioHooks.getEar().registerMusic(roomMusicStr);
@@ -134,8 +128,7 @@ public class RoomBox extends CorpusRole {
 				else if(scrollVelocity != null && moveX < -scrollVelocity)
 					moveX = -scrollVelocity;
 			}
-			nextCenter = new Vector2(safePrevCenter.x+moveX,
-					body.getBounds().y + body.getBounds().height/2f + viewVerticalOffset);
+			nextCenter = new Vector2(safePrevCenter.x+moveX, body.getPosition().y + viewVerticalOffset);
 		}
 		// if scrolling vertically then check/do view center move, cap velocity
 		else if(viewScrollDir.isVertical()) {
@@ -153,22 +146,20 @@ public class RoomBox extends CorpusRole {
 					moveY = -scrollVelocity;
 			}
 			// TODO nextCenter.x += viewHorizontalOffset;
-			nextCenter = new Vector2(body.getBounds().x + body.getBounds().width/2f, safePrevCenter.y+moveY);
+			nextCenter = new Vector2(body.getPosition().x, safePrevCenter.y+moveY);
 		}
 		else {
-			if(isScrollH) {
-				nextCenter = new Vector2(playerPosition.x,
-						body.getBounds().y + body.getBounds().height/2f + viewVerticalOffset);
-			}
+			if(isScrollH)
+				nextCenter = new Vector2(playerPosition.x, body.getPosition().y + viewVerticalOffset);
 			else
-				nextCenter = new Vector2(body.getBounds().x + body.getBounds().width/2f, playerPosition.y);
+				nextCenter = new Vector2(body.getPosition().x, playerPosition.y);
 		}
 
 		if(isScrollBoundX) {
 			// minX = far left of room plus half of screen width
-			float minX = body.getBounds().x + UInfo.P2M(CommonInfo.V_WIDTH)/2f;
+			float minX = body.getLeftX() + UInfo.P2M(CommonInfo.V_WIDTH)/2f;
 			// maxX = far right of room minus half of screen width
-			float maxX = body.getBounds().x + body.getBounds().width - UInfo.P2M(CommonInfo.V_WIDTH)/2f;
+			float maxX = body.getRightX() - UInfo.P2M(CommonInfo.V_WIDTH)/2f;
 			if(nextCenter.x < minX)
 				nextCenter.x = minX;
 			else if(nextCenter.x > maxX)
@@ -176,9 +167,9 @@ public class RoomBox extends CorpusRole {
 		}
 		if(isScrollBoundY) {
 			// minY = very bottom of room plus half of screen height
-			float minY = body.getBounds().y + UInfo.P2M(CommonInfo.V_HEIGHT)/2f;
+			float minY = body.getBottomY() + UInfo.P2M(CommonInfo.V_HEIGHT)/2f;
 			// maxY = very top of room minus half of screen height
-			float maxY = body.getBounds().y + body.getBounds().height - UInfo.P2M(CommonInfo.V_HEIGHT)/2f;
+			float maxY = body.getTopY() - UInfo.P2M(CommonInfo.V_HEIGHT)/2f;
 			if(nextCenter.y < minY)
 				nextCenter.y = minY;
 			else if(nextCenter.y > maxY)
@@ -189,7 +180,6 @@ public class RoomBox extends CorpusRole {
 	}
 
 	private Vector2 getCenterViewCenter() {
-		return new Vector2(body.getBounds().x + body.getBounds().width/2f,
-				body.getBounds().y + body.getBounds().height/2f + viewVerticalOffset);
+		return new Vector2(body.getPosition().x, body.getPosition().y + viewVerticalOffset);
 	}
 }

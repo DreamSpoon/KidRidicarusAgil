@@ -6,8 +6,8 @@ import kidridicarus.common.tool.Direction4;
 
 public class ScriptedSpriteState {
 	public enum SpriteState { STAND, MOVE, CLIMB }
-	public SpriteState spriteState;
 
+	public SpriteState spriteState;
 	public Vector2 position;
 	public boolean visible;
 	public boolean isFacingRight;
@@ -21,11 +21,17 @@ public class ScriptedSpriteState {
 		moveDir = Direction4.NONE;
 	}
 
-	public ScriptedSpriteState(ScriptedSpriteState other) {
-		this.spriteState = other.spriteState;
-		this.position = other.position.cpy();
-		this.visible = other.visible;
-		this.isFacingRight = other.isFacingRight;
-		this.moveDir = other.moveDir;
+	public ScriptedSpriteState(SpriteState spriteState, Vector2 position, boolean visible, boolean isFacingRight,
+			Direction4 moveDir) {
+		this.spriteState = spriteState;
+		this.position = position;
+		this.visible = visible;
+		this.isFacingRight = isFacingRight;
+		this.moveDir = moveDir;
+	}
+
+	public ScriptedSpriteState cpy() {
+		return new ScriptedSpriteState(this.spriteState, this.position.cpy(), this.visible, this.isFacingRight,
+				this.moveDir);
 	}
 }

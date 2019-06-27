@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Vector2;
 import kidridicarus.agency.Agent;
 import kidridicarus.agency.tool.ObjectProperties;
 import kidridicarus.common.info.CommonKV;
+import kidridicarus.common.role.roombox.RoomBox;
 import kidridicarus.common.tool.Direction4;
 import kidridicarus.common.tool.Direction8;
 import kidridicarus.story.Role;
@@ -147,5 +148,17 @@ public class RP_Tool {
 
 	public static String getTargetName(ObjectProperties properties) {
 		return properties.getString(CommonKV.Script.KEY_TARGET_NAME, "");
+	}
+
+	public static Role getChildRole(ObjectProperties properties) {
+		return properties.get(CommonKV.KEY_CHILD_ROLE, null, Role.class);
+	}
+
+	public static Role getParentRole(ObjectProperties properties) {
+		return properties.get(CommonKV.KEY_PARENT_ROLE, null, Role.class);
+	}
+
+	public static RoomBox getCurrentRoom(Role role) {
+		return role.getAgent().getProperty(CommonKV.KEY_CURRENT_ROOM, null, RoomBox.class);
 	}
 }
